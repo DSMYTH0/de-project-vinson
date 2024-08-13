@@ -72,7 +72,7 @@ security-test:
 
 ## Run the black code check
 run-black:
-	$(call execute_in_env, black src test)
+	$(call execute_in_env, black src tests)
 
 ## Run the unit tests
 unit-test:
