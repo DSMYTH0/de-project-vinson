@@ -74,6 +74,7 @@ security-test:
 run-black:
 	$(call execute_in_env, black src tests)
 
+
 ## Run the unit tests
 unit-test:
 	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} pytest -vvv --testdox)
