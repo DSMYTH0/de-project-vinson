@@ -16,6 +16,15 @@ def fetch_table_names(conn):
         """))
     return [table for item in tables for table in item]
 
+# Create function to put csv file into s3 bucket
+def put_csv_object(body, bucket, key_name, client=boto3.client('s3')):
+     
+        client.put_object(
+            Body=body,
+            Bucket=bucket,
+            Key=key_name,
+        )
+        return True
 
 
 def extract_handler(event, context):
@@ -25,10 +34,13 @@ def extract_handler(event, context):
     
     conn = None 
     
+    current_date = datetime.now()
+    
     try:
         #Create db connection
         conn = connect_to_db()
         
+        bucket_name = 'vinson-landing-zone'
         tables = fetch_table_names(conn)
         #Check tables not empty
         if not tables:
@@ -45,8 +57,11 @@ def extract_handler(event, context):
             columns = [column['name'] for column in conn.columns]
             df = pd.DataFrame(data=response, columns=columns)
             csv_file = df.to_csv(index=False, lineterminator='\n')
+            file_path = f'{table}/Year-{current_date.year}/Month-{current_date.month}/Day-{current_date.day}/{table}-{current_date.time()}.csv'
             
-            logger.info('Data has been successfully extracted.')
+            put_csv_object(csv_file, bucket_name, file_path)
+
+            logger.info(f'Data has been successfully extracted.')
 
         return {
             'statusCode': 200,
@@ -66,4 +81,4 @@ def extract_handler(event, context):
     
     
 
-print(extract_handler({}, {}))
+# print(extract_handler({}, {}))
