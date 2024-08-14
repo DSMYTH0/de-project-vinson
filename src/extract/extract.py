@@ -4,7 +4,6 @@ from datetime import datetime
 import logging
 import pandas as pd
 import boto3
-# import io
 
 
 #Create function to fetch all table names from database
@@ -14,7 +13,17 @@ def fetch_table_names(conn):
             FROM information_schema.tables
             WHERE table_schema = 'public'
         """))
+    print(tables)
     return [table for item in tables for table in item]
+
+
+#Create funciton to extract dat from database
+def extract_data(conn, table):
+    query = f"SELECT * FROM {table}"
+    response = conn.run(query)
+    columns = [column['name'] for column in conn.columns]
+    df = pd.DataFrame(data=response, columns=columns)
+    return df
 
 # Create function to put csv file into s3 bucket
 def put_csv_object(body, bucket, key_name, client=boto3.client('s3')):
@@ -52,13 +61,10 @@ def extract_handler(event, context):
             
         #Iterate all tables to extract data
         for table in tables:
-            query = f"SELECT * FROM {table}"
-            response = conn.run(query)
-            columns = [column['name'] for column in conn.columns]
-            df = pd.DataFrame(data=response, columns=columns)
-            csv_file = df.to_csv(index=False, lineterminator='\n')
+            extracted_df = extract_data(conn, table)
+            csv_file = extracted_df.to_csv(index=False, lineterminator='\n')
             file_path = f'{table}/Year-{current_date.year}/Month-{current_date.month}/Day-{current_date.day}/{table}-{current_date.time()}.csv'
-            
+
             put_csv_object(csv_file, bucket_name, file_path)
 
             logger.info(f'Data has been successfully extracted.')
@@ -69,11 +75,20 @@ def extract_handler(event, context):
         }
 
     except DatabaseError:
-        logger.error('Error has been occurred')
+        logger.error('DatabaseError has been occurred')
         return {
             'statusCode': 500,
-            'body': 'error has been occurred'
+            'body': 'DatabaseError has been occurred'
         }
+        
+    except Exception as e:
+        logger.error('Unexpected error has been occurred')
+        return {
+            'statusCode': 404,
+            'body': 'Unexpected error has been occurred',
+            'error': e
+        }
+        
     #Finally close db connection if it's opened
     finally: 
         if conn:
