@@ -1,9 +1,13 @@
 from src.utils.connection import connect_to_db
 from pg8000.exceptions import DatabaseError
 from datetime import datetime
-from pprint import pprint
+import logging
+import pandas as pd
+import boto3
+# import io
 
 
+#Create function to fetch all table names from database
 def fetch_table_names(conn):
     tables = (conn.run("""
             SELECT table_name
@@ -14,29 +18,52 @@ def fetch_table_names(conn):
 
 
 
-def extract_handler():
+def extract_handler(event, context):
+    #Create logging object for cloudWatch
+    logger = logging.getLogger('extract_lambda_logger')
+    logger.setLevel(logging.INFO)
+    
+    conn = None 
+    
     try:
+        #Create db connection
         conn = connect_to_db()
-        # current_date = datetime.now()
-        # file_name = f'TABLENAME/{current_date.year}/{current_date.month}/{current_date.day}/TABLENAME-{current_date.time()}.csv'
+        
         tables = fetch_table_names(conn)
-        table_data = []
-        column_names = []
+        #Check tables not empty
+        if not tables:
+            logger.info('There is no table found to extract data.')
+            return {
+                'statusCode': 200,
+                'body': 'There is no table found to extract data.'
+            }
+            
+        #Iterate all tables to extract data
         for table in tables:
             query = f"SELECT * FROM {table}"
             response = conn.run(query)
             columns = [column['name'] for column in conn.columns]
-            table_data.append(response)
-            column_names.append(columns)
-        return
-    
+            df = pd.DataFrame(data=response, columns=columns)
+            csv_file = df.to_csv(index=False, lineterminator='\n')
+            
+            logger.info('Data has been successfully extracted.')
+
+        return {
+            'statusCode': 200,
+            'body': 'Data has been extracted successfully'
+        }
+
     except DatabaseError:
-        return {'message': 'connection error happened'}
-    
+        logger.error('Error has been occurred')
+        return {
+            'statusCode': 500,
+            'body': 'error has been occurred'
+        }
+    #Finally close db connection if it's opened
     finally: 
         if conn:
             conn.close()
     
     
 
-pprint(extract_handler())
+print(extract_handler({}, {}))
