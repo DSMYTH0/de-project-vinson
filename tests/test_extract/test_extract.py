@@ -42,6 +42,20 @@ def s3_bucket(s3_client):
 
 class TestUtilFunctions:
     
+    @pytest.mark.it("unit test: fetch_table_names function checks the database is empty")
+    def test_function_checks_the_database_is_empty(self):
+        #patch connection
+        with patch('src.extract.extract.connect_to_db') as patch_connection:
+            #arrange
+            mock_connection = Mock()
+            patch_connection.return_value = mock_connection
+            mock_connection.run.return_value = []
+            
+            response = fetch_table_names(mock_connection)
+            
+            assert response == 'No tables in the database'
+    
+    
     @pytest.mark.it("unit test: fetch_table_names function returns lists of table names")
     def test_function_return_list_of_table_names(self):
         #patch connection
@@ -62,13 +76,11 @@ class TestUtilFunctions:
     def test_function_return_expected_columns_and_check_data_type(self):
         #patch connection
         with patch('src.extract.extract.connect_to_db') as patch_connection:
-            #patch table_names
-            with patch('src.extract.extract.fetch_table_names') as patch_table_names:
                 #arrange
                 mock_connection = Mock()
                 patch_connection.return_value = mock_connection
-                patch_table_names.return_value = ['test_table']
-                mock_connection.run.return_value = [
+                dummy_table = 'Test_table'
+                mock_connection.run.return_value =[
                     [1, 'value-1', 'value-2', 'value-3', 'value-4']
                 ]
                 mock_connection.columns = [
@@ -79,11 +91,36 @@ class TestUtilFunctions:
                      {'name': 'column-4'},
                 ]
                 #act
-                response = extract_data(mock_connection, 'test_table')
+                response = extract_data(mock_connection, dummy_table)
 
                 #assert
                 assert 'column-id' in response
                 assert isinstance(response, pd.DataFrame)
+                
+                
+    
+    @pytest.mark.it("unit test: extract_data function check whether there are rows and columns")
+    def test_function_return_expected_columns_and_check_data_type(self):
+        #patch connection
+        with patch('src.extract.extract.connect_to_db') as patch_connection:
+                #arrange
+                mock_connection = Mock()
+                patch_connection.return_value = mock_connection
+                dummy_table = 'Test_table'
+                mock_connection.run.return_value =[]
+                
+                mock_connection.columns = [
+                     {'name': 'column-id'},
+                     {'name': 'column-1'},
+                     {'name': 'column-2'},
+                     {'name': 'column-3'},
+                     {'name': 'column-4'},
+                ]
+                #act
+                response = extract_data(mock_connection, dummy_table)
+                print(response)
+                
+                assert response == None
     
 
                 
