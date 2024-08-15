@@ -18,11 +18,11 @@ resource "aws_s3_object" "lambda_code" {
 #   }
 # }
 
-data "archive_file" "extract_lambda_dependencies_zip" {
-  type        = "zip"
-  output_path = "${path.module}/../packages/layers/dependencies.zip"
-  source_dir = "${path.module}/../lambda_dependencies"
-}
+# data "archive_file" "extract_lambda_dependencies_zip" {
+#   type        = "zip"
+#   output_path = "${path.module}/../packages/layers/dependencies.zip"
+#   source_dir = "${path.module}/../lambda_dependencies"
+# }
 
 resource "aws_s3_object" "lambda_requirements_layer_s3" {
   bucket = aws_s3_bucket.code_bucket.bucket
