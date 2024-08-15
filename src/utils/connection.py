@@ -1,15 +1,14 @@
-import os
-from dotenv import load_dotenv
+import boto3
 from pg8000.native import Connection
 
-load_dotenv(override=True)
 
-def connect_to_db():
+def connect_to_db(sm=boto3.client('secretsmanager', region_name="eu-west-2")):
+    print()
     return Connection(
-        user=os.getenv("PG_USER"),
-        password=os.getenv("PG_PASSWORD"),
-        database=os.getenv("PG_DATABASE"),
-        host=os.getenv("PG_HOST"),
-        port=int(os.getenv("PG_PORT"))
+        user=sm.get_secret_value(SecretId='pg_user')['SecretString'],
+        password=sm.get_secret_value(SecretId='pg_password')['SecretString'],
+        database=sm.get_secret_value(SecretId='pg_database')['SecretString'],
+        host=sm.get_secret_value(SecretId='pg_host')['SecretString'],
+        port=sm.get_secret_value(SecretId='pg_port')['SecretString']
     )
 

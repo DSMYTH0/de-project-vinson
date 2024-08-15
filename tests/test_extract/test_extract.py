@@ -32,12 +32,11 @@ def s3_client(aws_credentials):
 
 @pytest.fixture(scope="function")
 def s3_bucket(s3_client):
-    bucket_name = "test_bucket"
     s3_client.create_bucket(
-        Bucket= bucket_name,
+        Bucket= "test_bucket",
         CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
     )
-    return bucket_name
+    return s3_client
 
 
 class TestUtilFunctions:
@@ -127,27 +126,27 @@ class TestUtilFunctions:
 class TestExtractHandler:
     
     @pytest.mark.it("unit test: function retuns the name of mocked bucket")
-    def test_function_return_the_name_of_the_bucket(self, s3_client, s3_bucket):
-        response = s3_client.list_buckets()
+    def test_function_return_the_name_of_the_bucket(self, s3_bucket):
+        response = s3_bucket.list_buckets()
         bucket_names = [bucket['Name'] for bucket in response['Buckets']]
-        assert s3_bucket in bucket_names
+        assert 'test_bucket' in bucket_names
         
     
     @pytest.mark.it("unit test: function checks bucket is empty")
-    def test_function_checks_bucket_is_empty(self, s3_client, s3_bucket):
-        bucket_name = s3_client.list_objects_v2(Bucket="test_bucket")
+    def test_function_checks_bucket_is_empty(self, s3_bucket):
+        bucket_name = s3_bucket.list_objects_v2(Bucket="test_bucket")
         assert bucket_name['KeyCount'] == 0
     
     
     @pytest.mark.it("unit test: put_csv_object function puts csv file into s3 bucket")
-    def test_function_puts_csv_file_into_bucket(self, s3_client, s3_bucket):
+    def test_function_puts_csv_file_into_bucket(self, s3_bucket):
             csv_file = """
                 1,6826 Herzog Via,,Avon,New Patienceburgh,28441,Turkey,1803 637401,2022-11-03 14:20:49.962,2022-11-03 14:20:49.962\n
                 2,179 Alexie Cliffs,,,Aliso Viejo,99305-7380,San Marino,9621 880720,2022-11-03 14:20:49.962,2022-11-03 14:20:49.962\n
             """
             file_path = 'test_file.csv'
       
-            result = put_csv_object(csv_file, s3_bucket, file_path, client=s3_client)
+            result = put_csv_object(csv_file, 'test_bucket', file_path, client=s3_bucket)
             assert result is True
     
     
