@@ -30,7 +30,6 @@ resource "aws_s3_object" "lambda_requirements_layer_s3" {
   key = "packages/extract/dependencies.zip"
   source = "${path.module}/../packages/layers/dependencies.zip"
   etag = filemd5(data.archive_file.extract_lambda_dependencies_zip.output_path)
-  depends_on = [ null_resource.create_dependencies ]
 }
 
 
