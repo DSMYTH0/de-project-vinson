@@ -14,11 +14,7 @@ resource "aws_s3_object" "lambda_code" {
 
 resource "null_resource" "create_dependencies" {
   provisioner "local-exec" {
-    command = "pip install -r ${path.module}/../lambda_requirements.txt -t ${path.module}/../dependencies/python"
-  }
-
-  triggers = {
-    dependencies = filemd5("${path.module}/../requirements.txt")
+    command = "pip install -r ${path.module}/../lambda_requirements.txt -t ${path.module}/../lambda_dependencies"
   }
 }
 
@@ -26,6 +22,7 @@ data "archive_file" "extract_lambda_dependencies_zip" {
   type        = "zip"
   output_path = "${path.module}/../packages/layers/dependencies.zip"
   source_dir = "${path.module}/../lambda_dependencies"
+  depends_on = [ null_resource.create_dependencies ]
 }
 
 resource "aws_s3_object" "lambda_requirements_layer_s3" {
@@ -33,6 +30,7 @@ resource "aws_s3_object" "lambda_requirements_layer_s3" {
   key = "packages/extract/dependencies.zip"
   source = "${path.module}/../packages/layers/dependencies.zip"
   etag = filemd5(data.archive_file.extract_lambda_dependencies_zip.output_path)
+  depends_on = [ null_resource.create_dependencies ]
 }
 
 
@@ -40,6 +38,7 @@ resource "aws_lambda_layer_version" "lambda_dependencies_layer" {
   layer_name = "lambda_dependencies_layer"
   s3_bucket = aws_s3_object.lambda_requirements_layer_s3.bucket
   s3_key = aws_s3_object.lambda_requirements_layer_s3.key
+  depends_on = [ aws_s3_object.lambda_requirements_layer_s3 ]
 }
 
 
