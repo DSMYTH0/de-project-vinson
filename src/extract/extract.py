@@ -8,6 +8,12 @@ import boto3
 
 #Create function to fetch all table names from database
 def fetch_table_names(conn):
+    """ 
+        Function takes an db connection argument.
+        Run connection with query string to fetch table names from database.
+        Function will fetch all the table names if connection is done.
+        It returns a list of table names.
+    """
     tables = (conn.run("""
             SELECT table_name
             FROM information_schema.tables
@@ -19,6 +25,14 @@ def fetch_table_names(conn):
 
 #Create funciton to extract dat from database
 def extract_data(conn, table):
+    """ 
+        Function takes two arguments (e.g db connection and table name).
+        Initialise a query string with the table name.
+        Run connection with query string to extract data from database.
+        Get all the column names for the table.
+        Covert response data and columns into a dataFrame.
+        Finally return the dataFrame
+    """
     query = f"SELECT * FROM {table}"
     response = conn.run(query)
     columns = [column['name'] for column in conn.columns]
@@ -27,16 +41,35 @@ def extract_data(conn, table):
 
 # Create function to put csv file into s3 bucket
 def put_csv_object(body, bucket, key_name, client=boto3.client('s3')):
+    """ 
+        Function takes four arguments:
+            - body : data like csv_file
+            - bucket: to put object into a bucket
+            - key_name: file path for the object
+            - client: a default boto3 client to put object into bucket 
+    """
      
-        client.put_object(
-            Body=body,
-            Bucket=bucket,
-            Key=key_name,
-        )
-        return True
+    client.put_object(
+        Body=body,
+        Bucket=bucket,
+        Key=key_name,
+    )
+    return True
 
 
 def extract_handler(event, context):
+    """ 
+        Create lambda handler to extract data from source.
+        Create loggig object to log info on cloudWath.
+        Initially open a db connection object to connect to the database
+        Get all the table names and check table name object is not empty.
+        If the are tables than iterate through these tables.
+        Call a function that extracts data from source database and return a dataFrame.
+        Convert the dataFrame into csv file and put these csv file into S3 bucket.
+        If successfull than log info on cloudWatch.
+        Else raises DatabaseException or other Exception and handle those Exception.
+        Finally close the db connection if it is open.
+    """
     #Create logging object for cloudWatch
     logger = logging.getLogger('extract_lambda_logger')
     logger.setLevel(logging.INFO)
@@ -96,4 +129,3 @@ def extract_handler(event, context):
     
     
 
-# print(extract_handler({}, {}))
