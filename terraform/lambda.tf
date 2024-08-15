@@ -12,15 +12,15 @@ resource "aws_s3_object" "lambda_code" {
 
 
 
-# resource "null_resource" "create_dependencies" {
-#   provisioner "local-exec" {
-#     command = "pip install -r ${path.module}/../requirements.txt -t ${path.module}/../dependencies/python"
-#   }
+resource "null_resource" "create_dependencies" {
+  provisioner "local-exec" {
+    command = "pip install -r ${path.module}/../lambda_requirements.txt -t ${path.module}/../dependencies/python"
+  }
 
-#   triggers = {
-#     dependencies = filemd5("${path.module}/../requirements.txt")
-#   }
-# }
+  triggers = {
+    dependencies = filemd5("${path.module}/../requirements.txt")
+  }
+}
 
 data "archive_file" "extract_lambda_dependencies_zip" {
   type        = "zip"

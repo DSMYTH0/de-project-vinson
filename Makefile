@@ -41,7 +41,7 @@ logdirs:
 ## Build the environment requirements
 requirements: create-environment logdirs
 	$(call execute_in_env, $(PIP) install -r ./requirements.txt)
-	$(call execute_in_env, $(PIP) install -r ./lambda_requirements.txt -t lambda_dependencies)
+#	$(call execute_in_env, $(PIP) install -r ./lambda_requirements.txt -t lambda_dependencies)
 
 ################################################################################################################
 # Set Up
