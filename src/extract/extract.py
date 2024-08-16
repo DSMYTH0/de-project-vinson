@@ -147,7 +147,7 @@ def extract_handler(event, context):
         if conn:
             conn.close()
 
-    
+#
 
 
 # """ 
