@@ -1,10 +1,20 @@
-from src.utils.connection import connect_to_db
+from pg8000.native import Connection
 from pg8000.exceptions import DatabaseError
 from datetime import datetime
 import logging
 import pandas as pd
 import boto3
 import json
+
+def connect_to_db(sm=boto3.client('secretsmanager', region_name="eu-west-2")):
+    print()
+    return Connection(
+        user=sm.get_secret_value(SecretId='pg_user')['SecretString'],
+        password=sm.get_secret_value(SecretId='pg_password')['SecretString'],
+        database=sm.get_secret_value(SecretId='pg_database')['SecretString'],
+        host=sm.get_secret_value(SecretId='pg_host')['SecretString'],
+        port=sm.get_secret_value(SecretId='pg_port')['SecretString']
+    )
 
 
 #Create function to fetch all table names from database
