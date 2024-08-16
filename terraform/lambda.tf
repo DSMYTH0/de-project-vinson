@@ -24,19 +24,19 @@ resource "aws_s3_object" "lambda_code" {
 #   source_dir = "${path.module}/../lambda_dependencies"
 # }
 
-resource "aws_s3_object" "lambda_requirements_layer_s3" {
-  bucket = aws_s3_bucket.code_bucket.bucket
-  key = "packages/extract/dependencies.zip"
-  source = "${path.module}/../packages/layers/dependencies.zip"
-}
+# resource "aws_s3_object" "lambda_requirements_layer_s3" {
+#   bucket = aws_s3_bucket.code_bucket.bucket
+#   key = "packages/extract/dependencies.zip"
+#   source = "${path.module}/../packages/layers/dependencies.zip"
+# }
 
 
-resource "aws_lambda_layer_version" "lambda_dependencies_layer" {
-  layer_name = "lambda_dependencies_layer"
-  s3_bucket = aws_s3_object.lambda_requirements_layer_s3.bucket
-  s3_key = aws_s3_object.lambda_requirements_layer_s3.key
-  depends_on = [ aws_s3_object.lambda_requirements_layer_s3 ]
-}
+# resource "aws_lambda_layer_version" "lambda_dependencies_layer" {
+#   layer_name = "lambda_dependencies_layer"
+#   s3_bucket = aws_s3_object.lambda_requirements_layer_s3.bucket
+#   s3_key = aws_s3_object.lambda_requirements_layer_s3.key
+#   depends_on = [ aws_s3_object.lambda_requirements_layer_s3 ]
+# }
 
 
 resource "aws_lambda_function" "extract_lambda" {
@@ -46,7 +46,9 @@ resource "aws_lambda_function" "extract_lambda" {
     role = aws_iam_role.extract_lambda_role.arn
     handler = "extract.${var.extract_lambda_func}"
     runtime = "python3.12"
-    layers = [aws_lambda_layer_version.lambda_dependencies_layer.arn]
+    layers = ["arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python312:12"]
+    timeout = 30
+    memory_size = 512
 
     environment {
     variables = {
