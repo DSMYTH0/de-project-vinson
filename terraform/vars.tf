@@ -11,3 +11,10 @@ variable "extract_lambda_func" {
   default = "extract_handler"
 
 }
+
+
+variable "transform_lambda_func" {
+  type = string
+  default = "transform_handler"
+
+}
