@@ -9,7 +9,7 @@ on:
       - 'terraform/**'
       - 'packages/**'
       - 'src/extract/extract.py'
-      - 'src/extract/transform.py'
+      - 'src/transform/transform.py'
 
 jobs:
   run-tests:
