@@ -135,7 +135,7 @@ class TestUtilFunctions:
         Bucket="vinson-ingestion-zone",
         Key=f'timestamp/staff-last_extracted_timestamp.txt'
         )
-        update_extracted_time("vinson-ingestion-zone", "staff", "string to test")
+        update_extracted_time("vinson-ingestion-zone", "staff", "string to test", s3_client)
         response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_client)
         
         assert response == "string to test"
@@ -157,13 +157,13 @@ class TestUtilFunctions:
                     mock_connection.columns = [{'name':'colOne'}, {'name':'columnTwo'}, {'name':'col_3'}]
                 
                 
-                    response = extract_data(mock_connection, "staff", bucket, current_date)
+                    response = extract_data(mock_connection, "staff", bucket, current_date, s3_client)
                 
                 
                     assert isinstance(response, pd.DataFrame)
                     assert list(response.columns) == ['colOne', 'columnTwo', 'col_3']
                     assert len(response) == len(mock_connection.run.return_value)
-                    mock_update_time.assert_called_once_with(bucket, "staff", current_date)
+                    mock_update_time.assert_called_once_with(bucket, "staff", current_date, s3_client)
                     
                     
     @pytest.mark.it("unit test: extract_data function returns expected output if no updates available")
@@ -186,7 +186,7 @@ class TestUtilFunctions:
         csv_file = sample_dataframe.to_csv(index=False, lineterminator='\n')
         file_path = "test/path.csv"
         
-        put_csv(csv_file, bucket, file_path)
+        put_csv(csv_file, bucket, file_path, s3_client)
         
 
         response = s3_client.get_object(Bucket=bucket, Key=file_path)
