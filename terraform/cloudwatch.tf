@@ -26,12 +26,12 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_extract_error_catcher" {
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm" {
+resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm_1" {
   alarm_name          = "HighErrorRate"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = aws_cloudwatch_log_metric_filter.lambda-extract-error-catcher.metric_transformation[0].name
-  namespace           = aws_cloudwatch_log_metric_filter.lambda-extract-error-catcher.metric_transformation[0].namespace
+  metric_name         = aws_cloudwatch_log_metric_filter.lambda_extract_error_catcher.metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.lambda_extract_error_catcher.metric_transformation[0].namespace
   period              = 300 
   statistic           = "Sum"
   threshold           = 1 
@@ -81,12 +81,12 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_transform_error_catcher" {
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm" {
+resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm_2" {
   alarm_name          = "HighErrorRate"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = aws_cloudwatch_log_metric_filter.lambda-transform-error-catcher.metric_transformation[0].name
-  namespace           = aws_cloudwatch_log_metric_filter.lambda-transform-error-catcher.metric_transformation[0].namespace
+  metric_name         = aws_cloudwatch_log_metric_filter.lambda_transform_error_catcher.metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.lambda_transform_error_catcher.metric_transformation[0].namespace
   period              = 300 
   statistic           = "Sum"
   threshold           = 1 
