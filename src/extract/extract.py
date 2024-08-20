@@ -10,12 +10,14 @@ from datetime import datetime, timezone
 
 
 
+
 def extract_handler(event, response):
     logger = logging.getLogger('extract_lambda_logger')
     logger.setLevel(logging.INFO)
     
     conn = None
-    current_date = datetime.now(timezone.utc)
+    current_date = datetime.now(datetime.UTC)
+    print(current_date)
     bucket = "vinson-ingestion-zone"
 
     
