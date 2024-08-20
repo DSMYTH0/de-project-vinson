@@ -17,7 +17,7 @@ def get_last_extracted_time(bucket_name, table, client=boto3.client('s3')):
         last_extracted_time = json.loads(response['Body'].read())
         return last_extracted_time
     except:
-        create_new_extract(bucket_name, table)
+        create_new_extract(bucket_name, table, client)
         response = client.get_object(
             Bucket=bucket_name,
             Key=f'timestamp/{table}-last_extracted_timestamp.txt'
