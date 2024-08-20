@@ -28,8 +28,8 @@ def aws_credentials():
 @pytest.fixture(scope="function")
 def s3_client(aws_credentials):
     with mock_aws():
-        s3 = boto3.client("s3", region_name="eu-west-2")
-        yield s3
+        yield boto3.client("s3", region_name="eu-west-2")
+        
        
         
 
@@ -39,21 +39,21 @@ def s3_bucket(s3_client):
         Bucket= "vinson-ingestion-zone",
         CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
     )
-    return s3_client
+
 
 @pytest.fixture(scope="function")
 def sample_dataframe():
     data = {
-        'column1': range(1, 11),             # Integers from 1 to 10
-        'column2': [f'name{i}' for i in range(1, 11)],  # Strings "name1" to "name10"
-        'column3': [x * 1.5 for x in range(10)],  # Floats from 0.0 to 13.5
-        'column4': [True, False] * 5,        # Alternating True/False
-        'column5': pd.date_range('20230101', periods=10),  # Date range from 2023-01-01
-        'column6': list('ABCDEFGHIJ'),       # Single characters from A to J
-        'column7': pd.Series(range(10)).astype('category'),  # Categorical data
-        'column8': [None] * 5 + list(range(5)),  # None values and integers
-        'column9': [0.1 * i for i in range(10)],  # Floats from 0.0 to 0.9
-        'column10': [f'group{i % 3}' for i in range(10)]  # Repeating group labels
+        'column1': range(1, 11),
+        'column2': [f'name{i}' for i in range(1, 11)], 
+        'column3': [x * 1.5 for x in range(10)],
+        'column4': [True, False] * 5,
+        'column5': pd.date_range('20230101', periods=10), 
+        'column6': list('ABCDEFGHIJ'),
+        'column7': pd.Series(range(10)).astype('category'),
+        'column8': [None] * 5 + list(range(5)), 
+        'column9': [0.1 * i for i in range(10)],
+        'column10': [f'group{i % 3}' for i in range(10)]
     }
 
     df = pd.DataFrame(data)
@@ -62,16 +62,16 @@ def sample_dataframe():
 @pytest.fixture(scope="function")
 def sample_small_dataframe():
     data = {
-        'column1': [1],             # Integers from 1 to 10
-        'column2': ['name1'],  # Strings "name1" to "name10"
-        'column3': [0.1],  # Floats from 0.0 to 13.5
-        'column4': [True],        # Alternating True/False
-        'column5': ['2023-01-01'],  # Date range from 2023-01-01
-        'column6': ['A'],       # Single characters from A to J
-        'column7': ['category'],  # Categorical data
-        'column8': [1],  # None values and integers
-        'column9': [0.1],  # Floats from 0.0 to 0.9
-        'column10': ['label']  # Repeating group labels
+        'column1': [1], 
+        'column2': ['name1'], 
+        'column3': [0.1],  
+        'column4': [True],        
+        'column5': ['2023-01-01'], 
+        'column6': ['A'],      
+        'column7': ['category'],  
+        'column8': [1],  
+        'column9': [0.1],  
+        'column10': ['label']  
     }
 
     df = pd.DataFrame(data)
@@ -110,33 +110,33 @@ class TestUtilFunctions:
     
     
     @pytest.mark.it("unit test: get_last_extracted_time function returns expected time when a file is available in timestamp directory")
-    def test_function_return_expected_time(self, s3_bucket):
-        s3_bucket.put_object(
+    def test_function_return_expected_time(self, s3_client, s3_bucket):
+        s3_client.put_object(
         Body=json.dumps("Hello this is a test string"),
         Bucket="vinson-ingestion-zone",
         Key=f'timestamp/staff-last_extracted_timestamp.txt'
         )
         
-        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_bucket)
+        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_client)
 
         assert response == "Hello this is a test string"
         
     @pytest.mark.it("unit test: get_last_extracted_time function returns expected very old time when no file is available in timestamp directory")
-    def test_function_return_expected_time_when_no_timestamp_file(self, s3_bucket):
-        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_bucket)
+    def test_function_return_expected_time_when_no_timestamp_file(self, s3_client, s3_bucket):
+        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_client)
 
         assert response == "2000-01-01 01:01:01"
     
     
     @pytest.mark.it("unit test: update_extracted_time function replaces the timestamp file within the bucket when new data is detected")
-    def test_function_updates_timestamp_txt(self, s3_bucket):
-        s3_bucket.put_object(
+    def test_function_updates_timestamp_txt(self, s3_client, s3_bucket):
+        s3_client.put_object(
         Body=json.dumps("Hello this is a test string"),
         Bucket="vinson-ingestion-zone",
         Key=f'timestamp/staff-last_extracted_timestamp.txt'
         )
         update_extracted_time("vinson-ingestion-zone", "staff", "string to test")
-        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_bucket)
+        response = get_last_extracted_time("vinson-ingestion-zone", "staff", s3_client)
         
         assert response == "string to test"
         
@@ -181,7 +181,7 @@ class TestUtilFunctions:
                 
                 
     @pytest.mark.it("unit test: put_csv function puts csv file into bucket")
-    def test_function_puts_csv_in_bucket(self, s3_bucket, sample_dataframe):
+    def test_function_puts_csv_in_bucket(self, s3_client, s3_bucket, sample_dataframe):
         bucket = "vinson-ingestion-zone"
         csv_file = sample_dataframe.to_csv(index=False, lineterminator='\n')
         file_path = "test/path.csv"
@@ -189,12 +189,12 @@ class TestUtilFunctions:
         put_csv(csv_file, bucket, file_path)
         
 
-        response = s3_bucket.get_object(Bucket=bucket, Key=file_path)
+        response = s3_client.get_object(Bucket=bucket, Key=file_path)
         body = response['Body'].read().decode('utf-8')
 
         assert body == csv_file
         
-        objects = s3_bucket.list_objects_v2(Bucket=bucket)
+        objects = s3_client.list_objects_v2(Bucket=bucket)
         
         assert objects['Contents'][0]['Key'] == file_path
         
@@ -224,9 +224,7 @@ class TestUtilFunctions:
 
                             extract_handler(event, response)
                             
-                            
                             expected_datetime = mock_datetime.now.return_value
-
 
                             mock_fetch.assert_called_once_with(mock_connection.return_value)
                             mock_extract_data.assert_any_call(mock_connection.return_value, 'table1', bucket, expected_datetime)
@@ -257,14 +255,11 @@ class TestUtilFunctions:
                                 mock_extract_data.return_value = sample_dataframe
 
 
-                                
-                                
                                 extract_handler(event, response)
                                 mock_extract_data.return_value = sample_small_dataframe
                                 extract_handler(event, response)
                                 
                                 expected_datetime = mock_datetime.now.return_value
-
 
                                 assert mock_put_csv.call_count == 4
                                 
@@ -287,7 +282,6 @@ class TestUtilFunctions:
                 with patch('src.extract.extract.extract_data') as mock_extract_data:
                     with patch('src.extract.extract.datetime') as mock_datetime:
 
-                        # Set the mock datetime to a fixed point in time
                         mock_datetime.now.return_value = datetime(2024, 8, 19, 15, 4, 40, tzinfo=timezone.utc)
                         mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
                         
