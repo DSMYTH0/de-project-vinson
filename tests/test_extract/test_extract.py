@@ -167,14 +167,14 @@ class TestUtilFunctions:
                     
                     
     @pytest.mark.it("unit test: extract_data function returns expected output if no updates available")
-    def test_function_returns_expected_message(self, s3_bucket):
+    def test_function_returns_expected_message(self, s3_client, s3_bucket):
         bucket = "vinson-ingestion-zone"
         current_date = "2024-08-19 15:04:40.584900+00:00"
             
         with patch('src.extract.extract.connect_to_db') as mock_connection:
             mock_connection.run.return_value = []
             with patch('logging.info') as mock_log_info:
-                extract_data(mock_connection, "staff", bucket, current_date)
+                extract_data(mock_connection, "staff", bucket, current_date, s3_client)
         
         
                 mock_log_info.assert_called_once_with('No new staff data found')
