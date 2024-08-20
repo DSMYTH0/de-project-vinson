@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - '**'
-    #Terraform will be deployed once changes happening in these paths
-    paths:
-      - 'terraform/**'
-      - 'packages/**'
-      - 'src/extract/extract.py'
-      - 'src/transform/transform.py'
 
 jobs:
   run-tests:
