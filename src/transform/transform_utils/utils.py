@@ -1,6 +1,6 @@
 import pandas as pd
 import boto3
-from datetime import datetime
+from datetime import datetime, timezone
 import awswrangler as wr
 import logging
 
@@ -21,6 +21,8 @@ logging.basicConfig()
 logger.setLevel(logging.INFO)
 
 
+bucket_name = 'vinson-ingestion-zone'
+
 def read_csv_from_s3(bucket_name, file_key):
     try:
         return wr.s3.read_csv(path=f's3://{bucket_name}/{file_key}')
@@ -39,8 +41,8 @@ def return_dataframes(bucket_name):
             file_key = table
             df = read_csv_from_s3(bucket_name, file_key)
             df_list.append(df)
-            return f"{table}_df"
-        #print(df_list[1])
+            #return f"{table}_df"
+        #print(df_list)
         return df_list
     except Exception as e:
         logger.error(f"Bucket does not exist")
@@ -49,19 +51,8 @@ def return_dataframes(bucket_name):
         print(f"No files found in bucket.")
 
 
-
-def populate_schema_tables():
-    ingestion_tables = ['design', 'currency', 'staff', 'counterparty', 'address', 'department', 'sales_order']
-    df = return_dataframes(bucket_name)
-    for frame in df:
-        if frame.column in ingestion_tables:
-            #do something
-    #iterate over df_list
-    #if df_list name is equal to table name then populate table and return
-
-
 def data_to_parquet():
-
+    pass
 
 
 return_dataframes('vinson-ingestion-zone')
@@ -70,47 +61,80 @@ return_dataframes('vinson-ingestion-zone')
 
 
 #creating dim table from dataframes
-def dim_design(design_df):
-    required_columns = ["design_id","design_name","file_location", "file_name"]
-    dimension_design = design_df.filter(required_columns)
-    return dimension_design
+def dim_design():
+    df = return_dataframes(bucket_name)
+    for frame in df:
+        if 'design_id' in frame.columns:
+            required_columns = ["design_id","design_name","file_location", "file_name"]
+            dimension_design = frame.filter(required_columns)
+            #print(dimension_design)
+            return dimension_design
+
+dim_design()
+
+def dim_location():
+    df = return_dataframes(bucket_name)
+    for frame in df:
+        if 'address_id' in frame.columns:
+            modified_dim_location = frame.rename(columns={'address_id': 'location_id'})
+            modified_dim_location.pop('created_at')
+            modified_dim_location.pop('last_updated')
+            #print(modified_dim_location)
+            return modified_dim_location
+
+dim_location()
+
+def staff_df():
+    df = return_dataframes(bucket_name)
+    for frame in df:
+        if 'staff_id' in frame.columns:
+            dim_staff_columns = ['staff_id', 'first_name', 'last_name', 'email_address', 'department_id']
+            staff_table = frame.filter(dim_staff_columns)
+            return staff_table
+            #print(staff_table)
+
+def dim_staff():
+    df = return_dataframes(bucket_name)
+    for frame in df:
+        if 'department_name' in frame.columns:
+            department_columns = ['department_id', 'department_name', 'location']
+            department_table = frame.filter(department_columns)
+
+            staff_table = staff_df()
+            dim_staff_complete = pd.merge(department_table, staff_table,  how='inner', on='department_id')
+            
+            dim_staff_complete.pop('department_id')
+            #print(dim_staff_complete)
+
+            return dim_staff_complete
+
+
+dim_staff()
+
+def counterparty_table():
+    df = return_dataframes(bucket_name)
+    for frame in df:
+        if 'counterparty_id' in frame.columns:
+            counterparty_columns = ['legal_address_id', 'counterparty_id', 'counterparty_legal_name']
+            counterparty_df = frame.filter(counterparty_columns)
+            #print(counterparty_df)
+            return counterparty_df
 
 
 
-def dim_location(address_df):
-    modified_dim_location = address_df.rename(columns={'address_id': 'location_id'})
-    modified_dim_location.pop('created_at')
-    modified_dim_location.pop('last_updated')
-    return modified_dim_location
+def dim_counterparty():
+    df = return_dataframes(bucket_name)
+    counterparty_df = counterparty_table()
+    for frame in df:        
+        if 'address_id' in frame.columns:
+            required_columns = ['address_id', 'address_line_1', 'address_line_2', 'district', 'city', 'postal_code', 'country', 'phone']
+            address_df = frame.filter(required_columns)
 
-
-
-def dim_staff(staff_df, department_df):
-    dim_staff_columns = ['staff_id', 'first_name', 'last_name', 'email_address']
-    dim_staff['department_name'] = department_df['department_name']
-    dim_staff['location'] = department_df['location']
-    merged_tables = pd.merge(staff_df, department_df, ON=['department_id'], how='inner')
-    dim_staff_complete = merged_tables.filter('staff_id', 'first_name', 'last_name', 'email_address', 'department_name', 'location')
-    return dim_staff_complete
-
-
-
-def dim_counterparty(address_df, counterparty_df):
     merged_counterparty = pd.merge(address_df, counterparty_df, left_on='address_id', right_on='legal_address_id')
-    filtered_counterparty = merged_counterparty.filter(
-                                            'counterparty_id',
-                                            'counterparty_legal_name',
-                                            'address_line_1',
-                                            'address_line_2',
-                                            'district',
-                                            'city',
-                                            'postal_code',
-                                            'country',
-                                            'phone'
-                                        )
-    dim_counterparty_df = filtered_counterparty.rename(columns={
-        'counterparty_id' : 'counterparty_id',
-        'counterparty_legal_name' : 'counterparty_legal_name',
+    merged_counterparty.pop('legal_address_id')
+    merged_counterparty.pop('address_id')
+
+    dim_counterparty_df = merged_counterparty.rename(columns={
         'address_line_1' : 'counterparty-legal_address_line_1',
         'address_line_2' : 'counterparty-legal_address_line_2',
         'district' : 'counterparty_legal_district',
@@ -119,7 +143,11 @@ def dim_counterparty(address_df, counterparty_df):
         'country' : 'counterparty_legal_country',
         'phone' : 'counterparty_legal_phone_number'
     })
+    #print(dim_counterparty_df)
     return dim_counterparty_df
+
+
+dim_counterparty()
 
 #needs reviewing
 def dim_currency(currency_df):
@@ -131,7 +159,7 @@ def dim_currency(currency_df):
 
 
 def dim_date():
-    date = datetime.now(UTC)
+    date = datetime.now(timezone.utc)
     dim_date_df = pd.DataFrame()
     dim_date_df['date_id'] = [date.date()]
     dim_date_df['year'] = [date.year]
@@ -141,11 +169,16 @@ def dim_date():
     dim_date_df['day_name'] = [pd.to_datetime(date).day_name()]
     dim_date_df['month_name'] = [pd.to_datetime(date).month_name()]
     dim_date_df['quarter'] = [pd.to_datetime(date).quarter]
+    print(dim_date_df)
     return dim_date_df
 
-
+dim_date()
 
 def fact_sales_order(sales_order_df):
+    df = return_dataframes(bucket_name)
+    # for frame in df:
+    #     if:
+    #         pass
     fact_sales_order_df = sales_order_df.filter(
         'sales_order_id',
         'staff_id',

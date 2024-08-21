@@ -16,11 +16,6 @@ def transform_handler(event, context):
         ingestion_bucket = "vinson-ingestion-zone"
         processed_bucket = "vinson-processed-zone"
 
-        ingestion_tables = ['design', 'currency', 'staff', 'counterparty', 'address', 'department', 'sales_order']
-
-        df_dict = {}
-        #for loop? util functions?
-
         star_schema_tables = dict()
 
         star_schema_tables['dim_date'] = dim_date()
