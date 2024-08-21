@@ -8,7 +8,7 @@
 data "archive_file" "extract_lambda_zip" {
   type        = "zip"
   output_path = "${path.module}/../packages/extract/function.zip"
-  source_dir = "${path.module}/../src/extract"        # When transform lambda is deployed, this line needs changing to source_dir
+  source_dir = "${path.module}/../extract"        # When transform lambda is deployed, this line needs changing to source_dir
 }
 
 # Points to where the zipped code is located
