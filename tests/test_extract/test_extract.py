@@ -171,12 +171,28 @@ class TestUtilFunctions:
             
         with patch('src.extract.extract.connect_to_db') as mock_connection:
             mock_connection.run.return_value = []
-            with patch('logging.info') as mock_log_info:
+            with patch('logging.getLogger') as mock_logger:
+                mock_logger_instance = mock_logger.return_value
                 extract_data(mock_connection, "staff", bucket, current_date, s3_client)
-        
-        
-                mock_log_info.assert_called_once_with('No new staff data found')
                 
+                mock_logger_instance.info.assert_called_once_with('No new staff data found')
+
+    @pytest.mark.it("unit test: extract_data function handles exceptions as expected")
+    def test_extract_data_function_handles_exception(self, s3_client, s3_bucket):
+        bucket = ["vinson-ingestion-zone"]
+        current_date = "2024-08-19 15:04:40.584900+00:00"
+            
+        with patch('src.extract.extract.connect_to_db') as mock_connection:
+            mock_connection.run.return_value = [[5, "word", 12]]
+            with patch('logging.error') as mock_logger:
+                extract_data(mock_connection, "staff", bucket, current_date, s3_client)
+                
+                mock_logger.assert_called_once_with(f'Unexpected error raised during extract data function')
+
+
+
+
+
                 
     @pytest.mark.it("unit test: put_csv function puts csv file into bucket")
     def test_function_puts_csv_in_bucket(self, s3_client, s3_bucket, sample_dataframe):
