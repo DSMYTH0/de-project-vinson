@@ -171,12 +171,12 @@ class TestUtilFunctions:
             
         with patch('src.extract.extract.connect_to_db') as mock_connection:
             mock_connection.run.return_value = []
-            with patch('logging.info') as mock_log_info:
+            with patch('logging.getLogger') as mock_logger:
+                mock_logger_instance = mock_logger.return_value
                 extract_data(mock_connection, "staff", bucket, current_date, s3_client)
-        
-        
-                mock_log_info.assert_called_once_with('No new staff data found')
                 
+                mock_logger_instance.info.assert_called_once_with('No new staff data found')
+
                 
     @pytest.mark.it("unit test: put_csv function puts csv file into bucket")
     def test_function_puts_csv_in_bucket(self, s3_client, s3_bucket, sample_dataframe):
