@@ -1,8 +1,8 @@
-from src.extract.connection import connect_to_db
-from src.extract.fetch_table_list import fetch_table_names
-from src.extract.get_last_extract import get_last_extracted_time 
-from src.extract.extract_data import extract_data
-from src.extract.put_csv import put_csv
+from extract.connection import connect_to_db
+from extract.fetch_table_list import fetch_table_names
+from extract.get_last_extract import get_last_extracted_time 
+from extract.extract_data import extract_data
+from extract.put_csv import put_csv
 import logging
 from datetime import datetime, timezone
 
