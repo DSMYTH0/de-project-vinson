@@ -33,6 +33,7 @@ resource "aws_lambda_function" "extract_lambda" {
     environment {
     variables = {
       S3_BUCKET_NAME = aws_s3_bucket.code_bucket.bucket
+      PYTHONPATH = "/var/task/extract"
     }
   }
 }
