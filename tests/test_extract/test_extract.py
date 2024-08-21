@@ -6,7 +6,7 @@ import pandas as pd
 from moto import mock_aws
 from unittest.mock import patch, Mock, MagicMock, ANY
 from pg8000.exceptions import DatabaseError
-from extract.extract.extract import extract_handler
+from extract.extract.extract_lambda import extract_handler
 from extract.extract.fetch_table_list import fetch_table_names
 from extract.extract.get_last_extract import get_last_extracted_time
 from extract.extract.update_extract import update_extracted_time
@@ -84,7 +84,7 @@ class TestUtilFunctions:
     @pytest.mark.it("unit test: fetch_table_names function checks the database is empty")
     def test_function_checks_the_database_is_empty(self):
         #patch connection
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
             with patch('logging.error') as mock_log_error:
                 mock_connection.run.return_value = []
                 
@@ -97,7 +97,7 @@ class TestUtilFunctions:
     @pytest.mark.it("unit test: fetch_table_names function returns lists of table names")
     def test_function_return_list_of_table_names(self):
         #patch connection
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
             mock_connection.run.return_value = [["column_one"], ["column_two"], ["column_three"], ["column_four"]]
             
             response = fetch_table_names(mock_connection)
@@ -147,7 +147,7 @@ class TestUtilFunctions:
         current_date = "2024-08-19 15:04:40.584900+00:00"
             
         
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
             with patch('extract.extract.extract_data.get_last_extracted_time') as mock_extract_time:
                 with patch('extract.extract.extract_data.update_extracted_time') as mock_update_time:
                     mock_extract_time.return_value = "2024-08-18 15:04:40.584900+00:00"  # A previous date
@@ -171,7 +171,7 @@ class TestUtilFunctions:
         bucket = "vinson-ingestion-zone"
         current_date = "2024-08-19 15:04:40.584900+00:00"
             
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
             mock_connection.run.return_value = []
             with patch('logging.info') as mock_log_info:
                 extract_data(mock_connection, "staff", bucket, current_date, s3_client)
@@ -207,12 +207,12 @@ class TestUtilFunctions:
         response = {}
         bucket = "vinson-ingestion-zone" 
         
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
-            with patch('extract.extract.extract.fetch_table_names') as mock_fetch:
-                with patch('extract.extract.extract.extract_data') as mock_extract_data:
-                    with patch('extract.extract.extract.put_csv') as mock_put_csv:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
+            with patch('extract.extract.extract_lambda.fetch_table_names') as mock_fetch:
+                with patch('extract.extract.extract_lambda.extract_data') as mock_extract_data:
+                    with patch('extract.extract.extract_lambda.put_csv') as mock_put_csv:
                         
-                        with patch('extract.extract.extract.datetime') as mock_datetime:
+                        with patch('extract.extract.extract_lambda.datetime') as mock_datetime:
 
                             # Set the mock datetime to a fixed point in time
                             mock_datetime.now.return_value = datetime(2024, 8, 19, 15, 4, 40, tzinfo=timezone.utc)
@@ -240,12 +240,12 @@ class TestUtilFunctions:
         response = {}
         bucket = "vinson-ingestion-zone" 
         
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
-            with patch('extract.extract.extract.fetch_table_names') as mock_fetch:
-                with patch('extract.extract.extract.extract_data') as mock_extract_data:
-                    with patch('extract.extract.extract.put_csv') as mock_put_csv:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
+            with patch('extract.extract.extract_lambda.fetch_table_names') as mock_fetch:
+                with patch('extract.extract.extract_lambda.extract_data') as mock_extract_data:
+                    with patch('extract.extract.extract_lambda.put_csv') as mock_put_csv:
                         with patch('extract.extract.get_last_extract.create_new_extract') as mock_create_new:
-                            with patch('extract.extract.extract.datetime') as mock_datetime:
+                            with patch('extract.extract.extract_lambda.datetime') as mock_datetime:
 
                                 mock_datetime.now.return_value = datetime(2024, 8, 19, 15, 4, 40, tzinfo=timezone.utc)
                                 mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
@@ -277,10 +277,10 @@ class TestUtilFunctions:
         response = {}
         bucket = "vinson-ingestion-zone" 
         
-        with patch('extract.extract.extract.connect_to_db') as mock_connection:
-            with patch('extract.extract.extract.fetch_table_names') as mock_fetch:
-                with patch('extract.extract.extract.extract_data') as mock_extract_data:
-                    with patch('extract.extract.extract.datetime') as mock_datetime:
+        with patch('extract.extract.extract_lambda.connect_to_db') as mock_connection:
+            with patch('extract.extract.extract_lambda.fetch_table_names') as mock_fetch:
+                with patch('extract.extract.extract_lambda.extract_data') as mock_extract_data:
+                    with patch('extract.extract.extract_lambda.datetime') as mock_datetime:
 
                         mock_datetime.now.return_value = datetime(2024, 8, 19, 15, 4, 40, tzinfo=timezone.utc)
                         mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
