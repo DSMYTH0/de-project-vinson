@@ -33,16 +33,12 @@ def read_csv_from_s3(bucket_name, file_key):
 
 def return_dataframes(bucket_name):
     try:
-        # tables = fetch_table_names(conn)
         tables = ['address', 'design', 'staff', 'currency', 'counterparty', 'department', 'payment', 'payment_type', 'purchase_order', 'sales_order', 'transaction']
-        # print(tables)
         df_list = []
         for table in tables:
             file_key = table
             df = read_csv_from_s3(bucket_name, file_key)
             df_list.append(df)
-            #return f"{table}_df"
-        #print(df_list)
         return df_list
     except Exception as e:
         logger.error(f"Bucket does not exist")
@@ -105,7 +101,6 @@ def dim_staff():
             
             dim_staff_complete.pop('department_id')
             #print(dim_staff_complete)
-
             return dim_staff_complete
 
 
@@ -117,7 +112,6 @@ def counterparty_table():
         if 'counterparty_id' in frame.columns:
             counterparty_columns = ['legal_address_id', 'counterparty_id', 'counterparty_legal_name']
             counterparty_df = frame.filter(counterparty_columns)
-            #print(counterparty_df)
             return counterparty_df
 
 
@@ -173,6 +167,8 @@ def dim_date():
     return dim_date_df
 
 dim_date()
+
+
 
 def fact_sales_order(sales_order_df):
     df = return_dataframes(bucket_name)
