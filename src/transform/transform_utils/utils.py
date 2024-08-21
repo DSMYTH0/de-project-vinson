@@ -3,6 +3,7 @@ import boto3
 from datetime import datetime, timezone
 import awswrangler as wr
 import logging
+import json
 
 # get all table names from ingestion zone
 # check the lastest version of all tables ---- ???
@@ -66,7 +67,7 @@ def dim_design():
             #print(dimension_design)
             return dimension_design
 
-dim_design()
+
 
 def dim_location():
     df = return_dataframes(bucket_name)
@@ -78,7 +79,7 @@ def dim_location():
             #print(modified_dim_location)
             return modified_dim_location
 
-dim_location()
+
 
 def staff_df():
     df = return_dataframes(bucket_name)
@@ -104,7 +105,7 @@ def dim_staff():
             return dim_staff_complete
 
 
-dim_staff()
+
 
 def counterparty_table():
     df = return_dataframes(bucket_name)
@@ -141,14 +142,27 @@ def dim_counterparty():
     return dim_counterparty_df
 
 
-dim_counterparty()
 
-#needs reviewing
-def dim_currency(currency_df):
-    dim_currency_df = currency_df.filter('currency_id', 'currency_code')
-    dim_currency_df['currency_name'] = [currency_name(dim_currency_df['currency_code'])]
-    return dim_currency_df
 
+
+def get_currency():
+    with open("src/transform/transform_utils/currencies.json", "r") as file:
+        currency_data = json.load(file)
+        return currency_data
+
+
+def dim_currency():
+    df = return_dataframes(bucket_name)
+    currency_dict = get_currency()
+    for frame in df:
+        if 'currency_id' in frame.columns:
+            currency_info_df = pd.DataFrame(list(currency_dict['currencies'].items()), columns=['currency_code', 'currency_name'])
+
+            clean_df = frame.drop(columns=["created_at", "last_updated"])
+
+            currency_df = clean_df.merge(currency_info_df, on='currency_code', how='left')
+            #print(currency_df)
+            return currency_df
 
 
 
@@ -163,10 +177,10 @@ def dim_date():
     dim_date_df['day_name'] = [pd.to_datetime(date).day_name()]
     dim_date_df['month_name'] = [pd.to_datetime(date).month_name()]
     dim_date_df['quarter'] = [pd.to_datetime(date).quarter]
-    print(dim_date_df)
+    #print(dim_date_df)
     return dim_date_df
 
-dim_date()
+
 
 
 
@@ -193,3 +207,15 @@ def fact_sales_order(sales_order_df):
     fact_sales_order_df['last_updated_date'] = pd.to_datetime(sales_order_df['last_updated']).date()
     fact_sales_order_df['last_updated_time'] = pd.to_datetime(sales_order_df['last_updated']).time()
     return fact_sales_order_df
+
+
+
+
+
+dim_design()
+dim_location()
+dim_staff()
+dim_counterparty()
+get_currency()
+dim_currency()
+dim_date()

@@ -6,7 +6,7 @@ import boto3
 import awswrangler as wr
 import os
 import unittest
-from src.transform.transform_utils.utils import return_dataframes, read_csv_from_s3
+from src.transform.transform_utils.utils import return_dataframes, read_csv_from_s3, dim_staff, staff_df
 
 
 @pytest.fixture(scope="function")
@@ -65,6 +65,66 @@ class TestReadObjectFromBucket():
                 #mock_read_csv.assert_any_call('s3://test_bucket/table1.csv') 
 
    
-   
-    def test_returns_error_if_bucket_does_not_exist(self, s3_bucket):
-        pass
+@pytest.fixture(scope="function")
+def mock_staff_func():
+    mock_staff_df = pd.DataFrame({
+        "staff_id": [1, 2, 3],
+        "first_name": ['first-1', 'first-2', 'first-3'],
+        "last_name": ['last-1', 'last-2', 'last-3'],
+        "department_id": [2, 5, 7],
+        "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com'],
+        "created_at": ['2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355'],
+        "last_updated": ['2024-08-21 10:13:01.761355', '2024-08-21 12:13:01.761355', '2024-08-21 14:13:01.761355']
+    })
+    return mock_staff_df
+
+@pytest.fixture(scope="function")
+def mock_department_func():
+    mock_department_df = pd.DataFrame({
+        "department_id": [2, 5, 7],
+        "department_name": ['dev', 'admin', 'finance'],
+        "location": ['Leeds', 'Kent', 'York'],
+        "manager": ['Richard Roma', 'Mark Hanna', 'James Link'],
+        "created_at": ['2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355'],
+        "last_updated": ['2024-08-21 10:13:01.761355', '2024-08-21 12:13:01.761355', '2024-08-21 14:13:01.761355']
+    })
+    return mock_department_df
+
+@pytest.mark.it('unit test: staff_df function returns expected dataFrame')
+def test_function_returns_expected_staff_dataFrame(mock_staff_func):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_staff_func]):
+        expected_df = pd.DataFrame({
+            "staff_id": [1, 2, 3],
+            "first_name": ['first-1', 'first-2', 'first-3'],
+            "last_name": ['last-1', 'last-2', 'last-3'],
+            "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com'],
+            "department_id": [2, 5, 7]
+        })
+        expected_column_names = ['staff_id', 'first_name', 'last_name', 'email_address', 'department_id']
+        response = staff_df()
+        pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
+        for column in expected_column_names:
+            assert column in response
+
+@pytest.mark.it('unit test: dim_staff function returns expected dataFrame')
+def test_function_returns_expected_department_dataFrame(mock_department_func):
+    staff_df = pd.DataFrame({
+         "staff_id": [1, 2, 3],
+        "first_name": ['first-1', 'first-2', 'first-3'],
+        "last_name": ['last-1', 'last-2', 'last-3'],
+        "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com'],
+        "department_id": [2, 5, 7]
+    })
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_department_func]):
+        with patch('src.transform.transform_utils.utils.staff_df', return_value=staff_df):
+            expected_df = pd.DataFrame({
+                "department_name": ['dev', 'admin', 'finance'],
+                "location": ['Leeds', 'Kent', 'York'],
+                "staff_id": [1, 2, 3],
+                "first_name": ['first-1', 'first-2', 'first-3'],
+                "last_name": ['last-1', 'last-2', 'last-3'],
+                "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com']
+            })
+            response = dim_staff()
+            print(response)
+            pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
