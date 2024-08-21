@@ -128,8 +128,8 @@ def extract_data(conn, table, bucket_name, current_date, client=boto3.client('s3
             return dataframe
         else:
             logger.info(f'No new {table} data found')
-    except Exception as e:
-        logger.error(f'Unexpected error raised during extract data function: {e}')
+    except Exception:
+        logging.error(f'Unexpected error raised during extract data function')
 
 
 # sql_queries.py
