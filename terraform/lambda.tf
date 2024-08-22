@@ -46,7 +46,7 @@ resource "aws_lambda_function" "extract_lambda" {
 data "archive_file" "transform_lambda_zip" {
   type        = "zip"
   output_path = "${path.module}/../packages/transform/function.zip"
-  source_dir = "${path.module}/../src/transform"
+  source_file = "${path.module}/../src/transform/transform.py"
 }
 
 # Points to where the zipped code is located
@@ -61,11 +61,11 @@ resource "aws_lambda_function" "transform_lambda" {
     function_name = var.transform_lambda_func
     s3_bucket = aws_s3_bucket.code_bucket.bucket
     s3_key = "packages/transform/function.zip"
-    role = aws_iam_role.extract_lambda_role.arn
-    handler = "extract.${var.extract_lambda_func}"
+    role = aws_iam_role.transform_lambda_role.arn
+    handler = "transform.${var.transform_lambda_func}"
     runtime = "python3.12"
     layers = ["arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python312:12"] # Layers may need changing or adding, depends on AB & EC's needs
-    timeout = 30
+    timeout = 120
     memory_size = 512
 
     environment {
