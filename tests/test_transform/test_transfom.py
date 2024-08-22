@@ -6,7 +6,7 @@ import boto3
 import awswrangler as wr
 import os
 import unittest
-from src.transform.transform_utils.utils import return_dataframes, read_csv_from_s3, dim_staff, staff_df
+from src.transform.transform_utils.utils import return_dataframes, read_csv_from_s3, dim_staff, staff_df, dim_counterparty, counterparty_table
 
 
 @pytest.fixture(scope="function")
@@ -129,66 +129,69 @@ def test_function_returns_expected_department_dataFrame(mock_department_func):
             print(response)
             pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
 
-@pytest.fixture(scope="function”)
+@pytest.fixture(scope="function")
 def mock_counterparty_table():
     mock_counterparty_df = pd.DataFrame({
-        “counterparty_id”: [1, 3, 4],
-        “counterparty_legal_name”: [‘Counterparty1’, ‘Counterparty2’, ‘Counterparty3’],
-        ‘legal_address_id’: [5, 4, 3],
-        ‘commercial_contact’: [‘Jack’, ‘Mike’, ‘John’],
-        ‘delivery_contact’: [‘Jack’, ‘Mike’, ‘John’],
-        “created_at”: [‘2024-08-21 08:13:01.761355’, ‘2024-08-21 08:13:01.761355’, ‘2024-08-21 08:13:01.761355’],
-        “last_updated”: [‘2024-08-21 10:13:01.761355’, ‘2024-08-21 12:13:01.761355’, ‘2024-08-21 14:13:01.761355’]
+        "counterparty_id": [1, 3, 4],
+        "counterparty_legal_name": ['Counterparty1', 'Counterparty2', 'Counterparty3'],
+        'legal_address_id': [5, 4, 3],
+        'commercial_contact': ['Jack', 'Mike', 'John'],
+        'delivery_contact': ['Jack', 'Mike', 'John'],
+        "created_at": ['2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355'],
+        "last_updated": ['2024-08-21 10:13:01.761355', '2024-08-21 12:13:01.761355', '2024-08-21 14:13:01.761355']
     })
     return mock_counterparty_df
-@pytest.fixture(scope=“function”)
+
+@pytest.fixture(scope="function")
 def mock_address_func():
     mock_address_df = pd.DataFrame({
-        ‘address_id’: [11],
-        “address_line_1”: [“11 College Rd”],
-        “address_line_2”: [“Master House”],
-        “district”: [“Kent”],
-        “city”: [“Maidstone”],
-        “postal_code”: [“1289"],
-        “country”: [“England”],
-        “phone”: [“34512385743"],
-        “created_at”: [‘2024-08-21 08:13:01.761355’],
-        “last_updated”: [‘2024-08-21 10:13:01.761355’]
+        'address_id': [11],
+        "address_line_1": ["11 College Rd"],
+        "address_line_2": ["Master House"],
+        "district": ["Kent"],
+        "city": ["Maidstone"],
+        "postal_code": ["1289"],
+        "country": ["England"],
+        "phone": ["34512385743"],
+        "created_at": ['2024-08-21 08:13:01.761355'],
+        "last_updated": ['2024-08-21 10:13:01.761355']
     })
     return mock_address_df
-@pytest.mark.it(‘unit test: counterparty_table function returns expected counterparty dataFrame’)
+
+@pytest.mark.it('unit test: counterparty_table function returns expected counterparty dataFrame')
 def test_function_returns_expected_counterparty_dataFrame(mock_counterparty_table):
-    with patch(‘src.transform.dim_tables.return_dataframes’, return_value=[mock_counterparty_table]):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_counterparty_table]):
         expected_df = pd.DataFrame({
-            ‘legal_address_id’: [5, 4, 3],
-            “counterparty_id”: [1, 3, 4],
-            “counterparty_legal_name”: [‘Counterparty1’, ‘Counterparty2’, ‘Counterparty3’]
+            'legal_address_id': [5, 4, 3],
+            "counterparty_id": [1, 3, 4],
+            "counterparty_legal_name": ['Counterparty1', 'Counterparty2', 'Counterparty3']
         })
-        expected_columns = [‘counterparty_id’, ‘counterparty_legal_name’, ‘legal_address_id’]
+        expected_columns = ['counterparty_id', 'counterparty_legal_name', 'legal_address_id']
         response = counterparty_table()
         pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
         assert [column in response.columns for column in expected_columns]
-@pytest.mark.it(‘unit test: dim_counterparty function merges with address and returns expected counterparty dataFrame’)
+
+@pytest.mark.it('unit test: dim_counterparty function merges with address and returns expected counterparty dataFrame')
 def test_function_merges_with_address_and_returns_expected_counterparty_dataFrame(mock_address_func):
     mock_counterparty_table = pd.DataFrame({
-            ‘legal_address_id’: [11],
-            “counterparty_id”: [1],
-            “counterparty_legal_name”: [‘Counterparty1’]
+            'legal_address_id': [11],
+            "counterparty_id": [1],
+            "counterparty_legal_name": ['Counterparty1']
         })
-    with patch(‘src.transform.dim_tables.return_dataframes’, return_value=[mock_address_func]):
-        with patch(‘src.transform.dim_tables.counterparty_table’, return_value=mock_counterparty_table):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_func]):
+        with patch('src.transform.transform_utils.utils.counterparty_table', return_value=mock_counterparty_table):
             expected_df = pd.DataFrame({
-                ‘counterparty-legal_address_line_1’: [“11 College Rd”],
-                ‘counterparty-legal_address_line_2’: [“Master House”],
-                ‘counterparty_legal_district’: [“Kent”],
-                ‘counterparty_legal_city’: [“Maidstone”],
-                ‘counterparty_legal_postal_code’: [“1289”],
-                ‘counterparty_legal_country’: [“England”],
-                ‘counterparty_legal_phone_number’: [“34512385743”],
-                “counterparty_id”: [1],
-                ‘counterparty_legal_name’: [“Counterparty1”]
+                'counterparty-legal_address_line_1': ["11 College Rd"],
+                'counterparty-legal_address_line_2': ["Master House"],
+                'counterparty_legal_district': ["Kent"],
+                'counterparty_legal_city': ["Maidstone"],
+                'counterparty_legal_postal_code': ["1289"],
+                'counterparty_legal_country': ["England"],
+                'counterparty_legal_phone_number': ["34512385743"],
+                "counterparty_id": [1],
+                'counterparty_legal_name': ["Counterparty1"]
             })
-            expected_columns = [‘counterparty_id’, ‘counterparty_legal_name’, ‘counterparty_legal_postal_code’]
+            expected_columns = ['counterparty_id', 'counterparty_legal_name', 'counterparty_legal_postal_code']
             response = dim_counterparty()
             pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
             assert [column in response.columns for column in expected_columns]
