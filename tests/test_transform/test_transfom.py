@@ -52,7 +52,7 @@ class TestReadObjectFromBucket():
                 'column2': ['a', 'b', 'c']
             })
         # Mocking the return values
-        with patch('src.extract.extract.fetch_table_names') as mock_tables:
+        with patch('src.transform.transform_utils.utils.fetch_table_names') as mock_tables:
             with patch('src.transform.transform_utils.utils.read_csv_from_s3') as mock_read_csv:
                 mock_tables.return_value = ['table1.csv']
                 mock_read_csv.return_value = mock_df

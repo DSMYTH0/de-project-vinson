@@ -193,28 +193,21 @@ def dim_date():
 
 
 
-def fact_sales_order(sales_order_df):
+def fact_sales_order():
     df = return_dataframes(bucket_name)
-    # for frame in df:
-    #     if:
-    #         pass
-    fact_sales_order_df = sales_order_df.filter(
-        'sales_order_id',
-        'staff_id',
-        'counterparty_id',
-        'units_sold',
-        'unit_price',
-        'currency_id',
-        'design_id',
-        'agreed_payment_date',
-        'agreed_delivery_date',
-        'agreed_deliverty_location_id'
-    )
-    fact_sales_order_df.rename(columns={'staff_id': 'sales_staff_id'})
-    fact_sales_order_df['created_date'] = pd.to_datetime(sales_order_df['created_at']).date()
-    fact_sales_order_df['created_time'] = pd.to_datetime(sales_order_df['created_at']).time()
-    fact_sales_order_df['last_updated_date'] = pd.to_datetime(sales_order_df['last_updated']).date()
-    fact_sales_order_df['last_updated_time'] = pd.to_datetime(sales_order_df['last_updated']).time()
+    required_columns = ['sales_order_id', 'created_at', 'last_updated', 'staff_id', 'counterparty_id', 'units_sold', 'unit_price', 'currency_id', 'design_id', 'agreed_payment_date', 'agreed_delivery_date', 'agreed_delivery_location_id']
+    for frame in df:
+        if 'units_sold' in frame.columns:
+            fact_sales_order_df = frame.filter(required_columns)
+            fact_sales_order_df['sales_record_id'] = range(1, len(fact_sales_order_df) + 1)
+            fact_sales_order_df.set_index('sales_record_id', inplace=True)
+
+            fact_sales_order_df.rename(columns={'staff_id': 'sales_staff_id'})
+            fact_sales_order_df['created_date'] = pd.to_datetime(fact_sales_order_df['created_at']).dt.date()
+            fact_sales_order_df['created_time'] = pd.to_datetime(fact_sales_order_df['created_at']).dt.time()
+            fact_sales_order_df['last_updated_date'] = pd.to_datetime(fact_sales_order_df['last_updated']).dt.date()
+            fact_sales_order_df['last_updated_time'] = pd.to_datetime(fact_sales_order_df['last_updated']).dt.time()
+            print(fact_sales_order_df)
     return fact_sales_order_df
 
 
@@ -228,3 +221,4 @@ dim_counterparty()
 get_currency()
 dim_currency()
 dim_date()
+fact_sales_order()
