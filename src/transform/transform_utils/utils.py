@@ -165,21 +165,30 @@ def dim_currency():
             return currency_df
 
 
-
+# still need to ask Simon about date dim table
 def dim_date():
-    date = datetime.now(timezone.utc)
-    dim_date_df = pd.DataFrame()
-    dim_date_df['date_id'] = [date.date()]
-    dim_date_df['year'] = [date.year]
-    dim_date_df['month'] = [date.month]
-    dim_date_df['day'] = [date.day]
-    dim_date_df['day_of_week'] = [pd.to_datetime(date).day_of_week + 1]
-    dim_date_df['day_name'] = [pd.to_datetime(date).day_name()]
-    dim_date_df['month_name'] = [pd.to_datetime(date).month_name()]
-    dim_date_df['quarter'] = [pd.to_datetime(date).quarter]
-    #print(dim_date_df)
-    return dim_date_df
+    date_result_list = []
 
+    for year in range(2022,2025):
+        for month in range(1,13):
+            for day in range(1,32):
+                try:
+                    date_result = pd.to_datetime(f'{year}-{month:02d}-{day:02d}')
+                    date_year = date_result.strftime('%Y')
+                    date_month = date_result.strftime('%m')
+                    date_day = date_result.strftime('%d')
+                    day_of_week = str(int(date_result.strftime('%w')) + 1)
+                    day_name = date_result.strftime('%A')
+                    month_name = date_result.strftime('%B')
+                    quarter = (int(date_month)+2)//3
+                    date_result_list.append([date_result, date_year, date_month, date_day, day_of_week, day_name, month_name, quarter])
+                except ValueError:
+                    continue
+    
+
+    dim_date_df = pd.DataFrame(date_result_list,columns=["date_id", 'year', 'month', 'day', 'day_of_week', 'day_name', 'month_name', 'quarter'])
+    # print(dim_date_df)
+    return dim_date_df
 
 
 
