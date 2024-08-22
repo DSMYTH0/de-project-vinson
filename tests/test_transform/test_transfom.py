@@ -2,7 +2,6 @@ import os
 import pytest
 import boto3
 import pandas as pd
-import awswrangler as wr
 from moto import mock_aws
 from unittest.mock import patch
 from src.transform.transform import dim_currency, currencies, return_dataframes, read_csv_from_s3
