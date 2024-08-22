@@ -119,7 +119,7 @@ resource "aws_iam_role_policy_attachment" "extract_lambda_secrets_policy_attachm
 
 
           ######################################
-#     ~~~~#### Extract Lambda IAM Resources ####~~~~
+#     ~~~~#### Transform Lambda IAM Resources ####~~~~
           ######################################
 
 

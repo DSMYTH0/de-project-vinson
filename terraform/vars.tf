@@ -21,6 +21,6 @@ variable "transform_log_group_name"{
 
 variable "transform_lambda_func" {
   type = string
-  default = "vinson_transform_handler"
+  default = "transform_handler"
 
 }
