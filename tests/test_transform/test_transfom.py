@@ -4,9 +4,13 @@ from unittest.mock import patch, Mock, MagicMock
 import pandas as pd
 import boto3
 import awswrangler as wr
+import datetime as dt
 import os
 import unittest
-from src.transform.transform_utils.utils import return_dataframes, read_csv_from_s3, dim_staff, staff_df, dim_counterparty, counterparty_table, currencies, dim_currency, dim_date, dim_location, dim_design
+from src.transform.transform_utils.utils import (return_dataframes, read_csv_from_s3, dim_staff, staff_df,
+                                                 dim_counterparty, counterparty_table, currencies,
+                                                 dim_currency, dim_date, dim_location, dim_design,
+                                                 fact_sales_order)
 
 
 @pytest.fixture(scope="function")
@@ -197,7 +201,6 @@ def mock_design_func():
     })
     return mock_design_df
 
-
 @pytest.mark.it('unit test: dim_design function returns expected design dataFrame')
 def test_function_returns_expected_design_dataFrame(mock_design_func):
     with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_design_func]):
@@ -212,10 +215,8 @@ def test_function_returns_expected_design_dataFrame(mock_design_func):
         pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
         assert [column in response.columns for column in expected_columns]
 
-
-
 @pytest.fixture(scope="function")
-def mock_address_func():
+def mock_address_dataframe():
     mock_address_df = pd.DataFrame({
         'address_id': [11],
         "address_line_1": ["11 College Rd"],
@@ -232,8 +233,8 @@ def mock_address_func():
 
 
 @pytest.mark.it('unit test: dim_location function returns expected location dataFrame')
-def test_function_returns_expected_location_dataFrame(mock_address_func):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_func]):
+def test_dim_location_function_returns_expected_location_dataFrame(mock_address_dataframe):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_dataframe]):
         expected_df = pd.DataFrame({
             "location_id": [11],
             "address_line_1": ["11 College Rd"],
@@ -259,15 +260,14 @@ def mock_return_dataframes(bucket_name):
     })
     return [df]
 
-
 def mock_currencies():
     return {
         'USD': 'US Dollar',
         'EUR': 'Euro'
     }
 
-
 class TestDimCurrency:
+    @pytest.mark.it('unit test: Test that currencies util provides correct currency name from currency code')
     def test_currencies_util(self):
         assert currencies()["GBP"] == "Pound Sterling"
         assert currencies()["USD"] == "US Dollar"
@@ -275,7 +275,8 @@ class TestDimCurrency:
         assert currencies()["VED"] == "Venezuelan digital bolivar"
         assert currencies()["SVC"] == "El Salvador Colon"
 
-    def test_works_as_intended(self):
+    @pytest.mark.it('unit-test: Test that dim_currency function returns expected dataframe')
+    def test_dim_currency_returns_intended_df(self):
         result = dim_currency(return_dataframes_func=mock_return_dataframes, currencies_func=mock_currencies)
         expected_df = pd.DataFrame({
             'currency_id': [1, 2],
@@ -288,7 +289,7 @@ class TestDimCurrency:
 
 
 @pytest.mark.it('unit test: dim_date function returns an expected date dataFrame')
-def test_function_returns_an_expected_date_dataFrame():
+def test_dim_date_function_returns_an_expected_date_dataFrame():
     with patch('pandas.to_datetime', return_value = pd.to_datetime('2023-08-31 00:00:00')):
         response = dim_date()
         expected_columns = ["date_id", 'year', 'month', 'day', 'day_of_week', 'day_name', 'month_name', 'quarter']
@@ -300,3 +301,51 @@ def test_function_returns_an_expected_date_dataFrame():
         assert isinstance(response['day_name'][0], str)
         assert isinstance(response['month_name'][0], str)
         assert isinstance(response['date_id'][0], pd.Timestamp)
+
+
+
+@pytest.fixture(scope="function")
+def mock_sales_order_dataframe():
+    mock_sales_order_df = pd.DataFrame({
+        "sales_order_id":[1, 2],
+        "created_at": ['2024-08-21 08:13:01.761355', '2024-08-21 08:13:01.761355'],
+        "last_updated": ['2024-10-21 10:13:01.761355', '2024-10-21 10:13:01.761355'],
+        "design_id": [10, 15],
+        "staff_id": [1, 2],
+        "counterparty_id": [1, 7],
+        "units_sold": [1001, 1010],
+        "unit_price": [2.99, 3.99],
+        "currency_id": [2, 3],
+        "agreed_delivery_date": ['2024-08-22', '2024-08-19'],
+        "agreed_payment_date":  ['2024-08-10', '2024-08-08'],
+        "agreed_delivery_location_id": [11, 12]
+    })
+    return mock_sales_order_df
+
+@pytest.mark.it('unit test: fact_sales_order function returns expected dataFrame with all required columns')
+def test_function_returns_expected_dataFrame_with_required_columns(mock_sales_order_dataframe):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_sales_order_dataframe]):
+        expected_df = pd.DataFrame({
+            "sales_record_id": [1, 2],
+            "sales_order_id":[1, 2],
+            "created_date": [pd.to_datetime('2024-08-21').date(), pd.to_datetime('2024-08-21').date()],
+            "created_time": [pd.to_datetime('08:13:01.761355').time(), pd.to_datetime('08:13:01.761355').time()],
+            "last_updated_date": [pd.to_datetime('2024-10-21').date(), pd.to_datetime('2024-10-21').date()],
+            "last_updated_time": [pd.to_datetime('10:13:01.761355').time(), pd.to_datetime('10:13:01.761355').time()],
+            "sales_staff_id": [1, 2],
+            "counterparty_id": [1, 7],
+            "units_sold": [1001, 1010],
+            "unit_price": [2.99, 3.99],
+            "currency_id": [2, 3],
+            "design_id": [10, 15],
+            "agreed_payment_date":  ['2024-08-10', '2024-08-08'],
+            "agreed_delivery_date": ['2024-08-22', '2024-08-19'],
+            "agreed_delivery_location_id": [11, 12],
+        })
+        expected_id_columns = ['sales_order_id', 'sales_staff_id', 'counterparty_id', 'currency_id', 'design_id', 'sales_record_id']
+        response = fact_sales_order()
+        pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
+        assert [column in response.columns for column in expected_id_columns]
+        print(type(response['created_date'][0]))
+        assert isinstance(response['created_date'][0], dt.date)
+        assert isinstance(response['last_updated_date'][0], dt.date)

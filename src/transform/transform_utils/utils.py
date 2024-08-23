@@ -245,7 +245,6 @@ def dim_date():
             for day in range(1,32):
                 try:
                     date_result = pd.to_datetime(f'{year}-{month:02d}-{day:02d}')
-                    print(date_result, '<<<<<')
                     date_year = int(date_result.strftime('%Y'))
                     date_month = int(date_result.strftime('%m'))
                     date_day = int(date_result.strftime('%d'))
