@@ -13,24 +13,23 @@ logger.setLevel(logging.INFO)
 def transform_handler(event, context):
 
     try:
-        s3_client = boto3.client('s3')
+        #s3_client = boto3.client('s3')
         ingestion_bucket = "vinson-ingestion-zone"
         processed_bucket = "vinson-processed-zone"
 
         star_schema_tables = {}
 
         star_schema_tables['dim_date'] = dim_date()
-        star_schema_tables['dim_counterparty'] = dim_counterparty()
-        star_schema_tables['dim_staff'] = dim_staff()
-        star_schema_tables['dim_location'] = dim_location()
-        star_schema_tables['dim_design'] = dim_design()
-        star_schema_tables['dim_currency'] = dim_currency()
-        star_schema_tables['fact_sales_order'] = fact_sales_order()
-
+        # star_schema_tables['dim_counterparty'] = dim_counterparty()
+        # star_schema_tables['dim_staff'] = dim_staff()
+        # star_schema_tables['dim_location'] = dim_location()
+        # star_schema_tables['dim_design'] = dim_design()
+        # star_schema_tables['dim_currency'] = dim_currency()
+        # star_schema_tables['fact_sales_order'] = fact_sales_order()
         for table, df in star_schema_tables.items():
+            print("HELLO FOR LOOP")
             data_to_parquet(table, df, processed_bucket)
     
     except Exception as e:
-            logger.error("-ERROR- Data processing failed")
+            logger.error(f"-ERROR- Data processing failed: {e}")
         
-transform_handler({}, {})

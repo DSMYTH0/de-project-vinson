@@ -1,16 +1,16 @@
 import pytest
 from moto import mock_aws
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock, ANY
 import pandas as pd
 import boto3
 import awswrangler as wr
 import datetime as dt
 import os
-import unittest
+from src.transform.transform import transform_handler
 from src.transform.transform_utils.utils import (return_dataframes, read_csv_from_s3, dim_staff, staff_df,
                                                  dim_counterparty, counterparty_table, currencies,
                                                  dim_currency, dim_date, dim_location, dim_design,
-                                                 fact_sales_order)
+                                                 fact_sales_order, data_to_parquet)
 
 
 @pytest.fixture(scope="function")
@@ -32,25 +32,26 @@ def s3_client(aws_credentials):
 
 @pytest.fixture(scope="function")
 def s3_bucket(s3_client):
+    bucket_name = "test_bucket"
     s3_client.create_bucket(
-        Bucket= "test_bucket",
+        Bucket= bucket_name,
         CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
     )
-    yield s3_client
+    return bucket_name
 
 
 
 
 class TestReturnDataframes():
-    def test_return_dataframes_gives_dataframe_of_correct_format(self, s3_bucket):
+    def test_return_dataframes_gives_dataframe_of_correct_format(self, s3_client, s3_bucket):
         csv_content = """id,name,value
                         1,Alice,100
                         2,Bob,200
                         3,Charlie,300"""
 
-        s3_bucket.put_object(
+        s3_client.put_object(
             Body=csv_content,
-            Bucket="test_bucket", 
+            Bucket=s3_bucket, 
             Key='table1.csv', 
             )
         expected_df = pd.DataFrame({
@@ -58,7 +59,7 @@ class TestReturnDataframes():
                         'name': ['Alice', 'Bob', 'Charlie'],
                         'value': [100, 200, 300]
         })
-        result = read_csv_from_s3('test_bucket', 'table1.csv')
+        result = read_csv_from_s3(s3_bucket, 'table1.csv')
         pd.testing.assert_frame_equal(result, expected_df)
 
 
@@ -164,13 +165,13 @@ def test_function_returns_expected_counterparty_dataFrame(mock_counterparty_tabl
 
 
 @pytest.mark.it('unit test: dim_counterparty function merges with address and returns expected counterparty dataFrame')
-def test_function_merges_with_address_and_returns_expected_counterparty_dataFrame(mock_address_func):
+def test_function_merges_with_address_and_returns_expected_counterparty_dataFrame(mock_address_dataframe):
     mock_counterparty_table = pd.DataFrame({
             'legal_address_id': [11],
             "counterparty_id": [1],
             "counterparty_legal_name": ['Counterparty1']
         })
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_func]):
+    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_dataframe]):
         with patch('src.transform.transform_utils.utils.counterparty_table', return_value=mock_counterparty_table):
             expected_df = pd.DataFrame({
                 "counterparty_id": [1],
@@ -346,6 +347,78 @@ def test_function_returns_expected_dataFrame_with_required_columns(mock_sales_or
         response = fact_sales_order()
         pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
         assert [column in response.columns for column in expected_id_columns]
-        print(type(response['created_date'][0]))
         assert isinstance(response['created_date'][0], dt.date)
         assert isinstance(response['last_updated_date'][0], dt.date)
+
+
+@pytest.mark.it('unit test: Test that data to parquet function puts parquet files in bucket')
+def test_data_to_parquet_puts_parquet_in_bucket(s3_client, s3_bucket, mock_sales_order_dataframe):
+    data_to_parquet("test_table", mock_sales_order_dataframe, s3_bucket)
+    result = s3_client.list_objects_v2(Bucket=s3_bucket)
+
+    assert result['Contents'][0]['Key'] == 'star-schema-test_table.parquet'
+
+
+@pytest.mark.skip()
+@pytest.mark.it('INTEGRATION TEST: Test transform lambda function puts parquet files in bucket')
+def test_trandform_handler_1(s3_client, s3_bucket, mock_sales_order_dataframe):
+    with patch('src.transform.transform.dim_date') as mock_dim_date:
+        with patch('src.transform.transform.data_to_parquet') as mock_to_parquet:
+
+            def mock_parquet_func():
+                s3_client.put_object(Body="Anything",
+                                    Bucket=s3_bucket,
+                                    Key='star-schema-test_table.parquet')
+
+            mock_dim_date.return_value = mock_sales_order_dataframe
+            mock_to_parquet.return_value = mock_parquet_func
+            
+            transform_handler({}, {})
+
+            objects_in_bucket = s3_client.list_objects_v2(Bucket=s3_bucket)
+            print(objects_in_bucket)
+            print(mock_to_parquet.call_count, "<<< MOCK TO PQ CALLS")
+
+            assert 'Contents' in objects_in_bucket  # Ensure the bucket is not empty
+            assert mock_to_parquet.call_count == 1
+            
+            # Verify the correct file name
+            for i in range(len(objects_in_bucket['Contents'])):
+                assert objects_in_bucket['Contents'][i]['Key'][-7:] == "parquet"
+
+
+# @pytest.mark.it('INTEGRATION TEST: Test transform lambda function puts parquet files in bucket')
+# def test_transform_handler_1(s3_client, s3_bucket, mock_sales_order_dataframe):
+#     hard_coded_bucket_name = 'vinson-processed-zone'
+    
+#     # Ensure the bucket is created in the mocked S3 environment
+#     s3_client.create_bucket(Bucket=hard_coded_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
+#     table_names = ['dim_date', 'dim_counterparty', 'dim_staff', 'dim_location', 'dim_design', 'dim_currency', 'fact_sales_order']
+    
+#     def side_effect_function(table, df, bucket):
+#         # This function will be called with different table names
+#         key = f'star-schema-{table}.parquet'
+#         s3_client.put_object(Body="Anything", Bucket=bucket, Key=key)
+    
+#     with patch('src.transform.transform.dim_date') as mock_dim_date, \
+#          patch('src.transform.transform_utils.utils.data_to_parquet') as mock_to_parquet:
+#         # Mock the dim_date function to return your test DataFrame
+#         mock_dim_date.return_value = mock_sales_order_dataframe
+        
+#         # Mock data_to_parquet to use side_effect_function to generate different keys
+#         mock_to_parquet.side_effect = side_effect_function
+        
+#         # Call the transform_handler function
+#         transform_handler({}, {})
+
+#         # Verify the contents of the S3 bucket
+#         objects_in_bucket = s3_client.list_objects_v2(Bucket=s3_bucket)
+
+#         assert 'Contents' in objects_in_bucket  # Ensure the bucket is not empty
+#         assert len(objects_in_bucket['Contents']) == len(table_names)  # Ensure we have 7 objects
+
+#         # Verify each file name ends with ".parquet"
+#         for obj in objects_in_bucket['Contents']:
+#             assert obj['Key'].endswith('.parquet')
+#             assert obj['Key'].startswith('star-schema-')
+

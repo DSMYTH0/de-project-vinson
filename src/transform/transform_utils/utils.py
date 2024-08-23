@@ -15,7 +15,7 @@ import json
 
 
 
-client = boto3.client('s3')
+#client = boto3.client('s3')
 
 logger = logging.getLogger('Processing Lambda Log')
 logging.basicConfig()
@@ -49,6 +49,7 @@ def return_dataframes(bucket_name):
 
 
 def data_to_parquet(table, df, bucket):
+    print("This is inside data to parquet")
     wr.s3.to_parquet(
     df=df,
     path=f"s3://{bucket}/star-schema-{table}.parquet"
