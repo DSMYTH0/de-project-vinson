@@ -5,17 +5,6 @@ import awswrangler as wr
 import logging
 import json
 
-# get all table names from ingestion zone
-# check the lastest version of all tables ---- ???
-# create new table and join neccessary colums 
-# change it parque format to get it ready for 
-
-#get csv files from a certain table and concatanate tehm together 
-
-
-
-
-#client = boto3.client('s3')
 
 logger = logging.getLogger('Processing Lambda Log')
 logging.basicConfig()
@@ -25,6 +14,15 @@ logger.setLevel(logging.INFO)
 bucket_name = 'vinson-ingestion-zone'
 
 def read_csv_from_s3(bucket_name, file_key):
+    """ 
+    Uses aws wrangler to read all files from the ingestion buckett and turn them to dataframes.
+    Args: bucket_name and file_key.
+
+    Returns: csv files as dataframes
+
+    Raises: 
+        logger.error: if the bucket does not exist
+    """
     try:
         return wr.s3.read_csv(path=f's3://{bucket_name}/{file_key}')
     except Exception as e:
@@ -33,6 +31,13 @@ def read_csv_from_s3(bucket_name, file_key):
 
 
 def return_dataframes(bucket_name):
+    """
+    Iterates over the table names from the ingestion bucket and puts all dataframes in a list.
+    Args: bucket_name.
+
+    Returns: list of dataframes.
+    """
+
     try:
         tables = ['address', 'design', 'staff', 'currency', 'counterparty', 'department', 'payment', 'payment_type', 'purchase_order', 'sales_order', 'transaction']
         df_list = []
@@ -49,6 +54,11 @@ def return_dataframes(bucket_name):
 
 
 def data_to_parquet(table, df, bucket):
+    """
+    Turns all the dataframes to parquet format and puts them in the processed bucket.
+    Args: table_name, dataframe, bucket.
+    """
+
     wr.s3.to_parquet(
     df=df,
     path=f"s3://{bucket}/star-schema-{table}.parquet"
@@ -65,6 +75,12 @@ def data_to_parquet(table, df, bucket):
 
 #creating dim table from dataframes
 def dim_design():
+    """
+    Iterates through the dataframe list and finds the design dataframe by desired column.
+    Filters the required columns.
+    Returns: the new dataframe.
+    """
+
     df = return_dataframes(bucket_name)
     for frame in df:
         if 'design_id' in frame.columns:
@@ -76,6 +92,12 @@ def dim_design():
 
 
 def dim_location():
+    """
+    Iterates through the dataframe list and finds the location dataframe by desired column.
+    Filters the required columns.
+
+    Returns: the new dataframe.
+    """
     df = return_dataframes(bucket_name)
     for frame in df:
         if 'address_id' in frame.columns:
@@ -88,6 +110,13 @@ def dim_location():
 
 
 def staff_df():
+    """
+    Iterates through the dataframe list and finds the staff dataframe by desired column.
+    Filters the required columns.
+
+    Returns: the new dataframe.
+    """
+
     df = return_dataframes(bucket_name)
     for frame in df:
         if 'staff_id' in frame.columns:
@@ -97,6 +126,12 @@ def staff_df():
             return staff_table
 
 def dim_staff():
+    """
+    Iterates through the dataframe list and finds the department dataframe by desired column.
+    Filters the required columns, merges staff and department dataframes. 
+
+    Returns: new dataframe with ordered columns.
+    """
     df = return_dataframes(bucket_name)
     for frame in df:
         if 'department_name' in frame.columns:
@@ -116,6 +151,12 @@ def dim_staff():
 
 
 def counterparty_table():
+    """
+    Iterates through the dataframe list and finds the counterparty dataframe by desired column.
+    Filters the required columns.
+
+    Returns: the new dataframe.
+    """
     df = return_dataframes(bucket_name)
     for frame in df:
         if 'counterparty_id' in frame.columns:
@@ -126,6 +167,12 @@ def counterparty_table():
 
 
 def dim_counterparty():
+    """
+    Iterates through the dataframe list and finds the address dataframe by desired column.
+    Filters the required columns, merges address and counterparty dataframes. 
+
+    Returns: new dataframe with renamed ordered columns.
+    """
     df = return_dataframes(bucket_name)
     counterparty_df = counterparty_table()
     for frame in df:        
@@ -157,6 +204,9 @@ def dim_counterparty():
 
 
 def currencies():
+    """
+    Returns a currency dictionary with currency_code:currency_name key-pair.
+    """
     currencies = {
         "AED": "UAE Dirham", "AFN": "Afghani", "ALL": "Lek",
         "AMD": "Armenian Dram", "ANG": "Netherlands Antillian Guilder",
@@ -226,6 +276,12 @@ def currencies():
 
 
 def dim_currency(return_dataframes_func=return_dataframes, currencies_func=currencies):
+    """
+    Iterates through the dataframe list and finds the currency dataframe by desired column.
+    It creates a dataframe from the currency function, drops unneeded columns and merges with the currency dataframe.
+    
+    Returns: the new dataframe.
+    """    
     df = return_dataframes_func(bucket_name)
     currency_dict = currencies_func()
     for frame in df:
@@ -239,6 +295,17 @@ def dim_currency(return_dataframes_func=return_dataframes, currencies_func=curre
 
 # still need to ask Simon about date dim table
 def dim_date():
+    """
+    Generates a DataFrame containing detailed date information for each day within a specified range of years.
+
+    The function iterates over each day from January 1, 2022, to December 31, 2024, and creates a date object.
+    For each valid date, the function extracts various components such as the year, month, day, day of the week, day name,
+    month name, and quarter. These components are stored in a list, which is then converted into a DataFrame.
+    
+    Returns:
+        A DataFrame containing detailed date information for each valid day in the specified date range.
+    """
+
     date_result_list = []
     for year in range(2022,2025):
         for month in range(1,13):
@@ -265,6 +332,13 @@ def dim_date():
 
 
 def fact_sales_order():
+    """
+    Iterates through the dataframe list and finds the sales_order dataframe by desired column.
+    Filters the required columns, adds sales_record_id columns, renames staff_id columns, 
+    and splits created_at and last_updated columns into time and date columns. 
+
+    Returns: new dataframe with ordered columns.
+    """
     df = return_dataframes(bucket_name)
     required_columns = ['sales_order_id', 'created_at', 'last_updated', 'staff_id', 'counterparty_id', 'units_sold', 'unit_price', 'currency_id', 'design_id', 'agreed_payment_date', 'agreed_delivery_date', 'agreed_delivery_location_id']
     for frame in df:

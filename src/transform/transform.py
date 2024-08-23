@@ -8,7 +8,15 @@ from src.transform.transform_utils.utils import data_to_parquet, dim_design, dim
 
 
 def transform_handler(event, context):
-
+    """
+        Takes csv files from the ingestion bucket, turns them into customised dimension dataframes, 
+        which it then turns into parquet format and writes them into the processed bucket.
+    Args: 
+        event (dict): The event object that triggered the Lambda function.
+        context (dict): The response object to be returned by the Lambda function.
+    Raises:
+        Exception: If an unexpected error occurs during the transformation proccess.
+    """
     logger = logging.getLogger('Processing Lambda Log')
     logging.basicConfig()
     logger.setLevel(logging.INFO)
@@ -33,5 +41,3 @@ def transform_handler(event, context):
     
     except Exception:
         logger.error("Unexpected error raised during the transform lambda function")
-
-        
