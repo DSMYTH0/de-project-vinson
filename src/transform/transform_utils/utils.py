@@ -70,7 +70,6 @@ def dim_design():
         if 'design_id' in frame.columns:
             required_columns = ["design_id","design_name","file_location", "file_name"]
             dimension_design = frame.filter(required_columns)
-            dimension_design.set_index('design_id', inplace=True)
             # print(dimension_design)
             return dimension_design
 
@@ -83,8 +82,7 @@ def dim_location():
             modified_dim_location = frame.rename(columns={'address_id': 'location_id'})
             modified_dim_location.pop('created_at')
             modified_dim_location.pop('last_updated')
-            modified_dim_location.set_index('location_id', inplace=True)
-            # print(modified_dim_location)
+            #print(modified_dim_location)
             return modified_dim_location
 
 
@@ -107,10 +105,11 @@ def dim_staff():
 
             staff_table = staff_df()
             dim_staff_complete = pd.merge(department_table, staff_table,  how='inner', on='department_id')
-            
             dim_staff_complete.pop('department_id')
-            dim_staff_complete.set_index('staff_id', inplace=True)
-            # print(dim_staff_complete)
+            columns = dim_staff_complete.columns.tolist()
+            new_columns = ['staff_id', 'first_name', 'last_name', 'department_name', 'location', 'email_address']
+            dim_staff_complete = dim_staff_complete[new_columns]
+            #print(dim_staff_complete)
             return dim_staff_complete
 
 
@@ -147,8 +146,10 @@ def dim_counterparty():
         'country' : 'counterparty_legal_country',
         'phone' : 'counterparty_legal_phone_number'
     })
-    dim_counterparty_df.set_index('counterparty_id', inplace=True)
-    # print(dim_counterparty_df)
+    columns = dim_counterparty_df.columns.tolist()
+    updated_columns = ['counterparty_id', 'counterparty_legal_name', 'counterparty-legal_address_line_1', 'counterparty-legal_address_line_2', 'counterparty_legal_district', 'counterparty_legal_city', 'counterparty_legal_postal_code', 'counterparty_legal_country', 'counterparty_legal_phone_number']
+    dim_counterparty_df = dim_counterparty_df[updated_columns]
+    #print(dim_counterparty_df)
     return dim_counterparty_df
 
 
@@ -232,7 +233,6 @@ def dim_currency(return_dataframes_func=return_dataframes, currencies_func=curre
             currency_info_df = pd.DataFrame(list(currency_dict.items()), columns=['currency_code', 'currency_name'])
             clean_df = frame.drop(columns=["created_at", "last_updated"])
             currency_df = clean_df.merge(currency_info_df, on='currency_code', how='left')
-            currency_df.set_index('currency_id', inplace=True)
             # print(currency_df)
             return currency_df
 
@@ -245,6 +245,7 @@ def dim_date():
             for day in range(1,32):
                 try:
                     date_result = pd.to_datetime(f'{year}-{month:02d}-{day:02d}')
+                    print(date_result, '<<<<<')
                     date_year = int(date_result.strftime('%Y'))
                     date_month = int(date_result.strftime('%m'))
                     date_day = int(date_result.strftime('%d'))
@@ -256,7 +257,7 @@ def dim_date():
                 except ValueError:
                     continue
     dim_date_df = pd.DataFrame(date_result_list,columns=["date_id", 'year', 'month', 'day', 'day_of_week', 'day_name', 'month_name', 'quarter'])
-    # print(dim_date_df)
+    #print(dim_date_df)
     return dim_date_df
 
 
@@ -273,12 +274,16 @@ def fact_sales_order():
             fact_sales_order_df['sales_record_id'] = range(1, len(fact_sales_order_df) + 1)
 
             fact_sales_order_df = fact_sales_order_df.rename(columns={'staff_id': 'sales_staff_id'})
-            fact_sales_order_df.set_index('sales_record_id', inplace=True)
             fact_sales_order_df['created_date'] = pd.to_datetime(fact_sales_order_df['created_at']).dt.date
             fact_sales_order_df['created_time'] = pd.to_datetime(fact_sales_order_df['created_at']).dt.time
             fact_sales_order_df['last_updated_date'] = pd.to_datetime(fact_sales_order_df['last_updated']).dt.date
             fact_sales_order_df['last_updated_time'] = pd.to_datetime(fact_sales_order_df['last_updated']).dt.time
             fact_sales_order_df = fact_sales_order_df.drop(columns=["created_at", "last_updated"])
+
+            columns = fact_sales_order_df.columns.tolist()
+            ordered_columns = ['sales_record_id', 'sales_order_id', 'created_date', 'created_time', 'last_updated_date', 'last_updated_time', 'sales_staff_id', 'counterparty_id', 'units_sold', 'unit_price', 'currency_id', 'design_id', 'agreed_payment_date', 'agreed_delivery_date', 'agreed_delivery_location_id']
+            fact_sales_order_df = fact_sales_order_df[ordered_columns]
+            #print(fact_sales_order_df)
             
     return fact_sales_order_df
 
