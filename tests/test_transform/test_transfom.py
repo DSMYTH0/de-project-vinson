@@ -11,6 +11,7 @@ from src.transform.transform_utils.utils import (return_dataframes, read_csv_fro
                                                  dim_counterparty, counterparty_table, currencies,
                                                  dim_currency, dim_date, dim_location, dim_design,
                                                  fact_sales_order, data_to_parquet)
+import logging
 
 
 @pytest.fixture(scope="function")
@@ -359,66 +360,54 @@ def test_data_to_parquet_puts_parquet_in_bucket(s3_client, s3_bucket, mock_sales
     assert result['Contents'][0]['Key'] == 'star-schema-test_table.parquet'
 
 
-@pytest.mark.skip()
+
 @pytest.mark.it('INTEGRATION TEST: Test transform lambda function puts parquet files in bucket')
-def test_trandform_handler_1(s3_client, s3_bucket, mock_sales_order_dataframe):
+def test_transform_handler_(s3_client, s3_bucket, mock_sales_order_dataframe):
     with patch('src.transform.transform.dim_date') as mock_dim_date:
-        with patch('src.transform.transform.data_to_parquet') as mock_to_parquet:
+        with patch('src.transform.transform.dim_counterparty') as mock_dim_counterparty:
+            with patch('src.transform.transform.dim_staff') as mock_dim_staff:
+                with patch('src.transform.transform.dim_location') as mock_dim_location:
+                    with patch('src.transform.transform.dim_design') as mock_dim_design:
+                        with patch('src.transform.transform.dim_currency') as mock_dim_currency:
+                            with patch('src.transform.transform.fact_sales_order') as mock_fact_sales_order:
+        
+        
+        
+        
+                                with patch('src.transform.transform.data_to_parquet') as mock_to_parquet:
 
-            def mock_parquet_func():
-                s3_client.put_object(Body="Anything",
-                                    Bucket=s3_bucket,
-                                    Key='star-schema-test_table.parquet')
+                                    def mock_parquet_func():
+                                        s3_client.put_object(Body="Anything",
+                                                            Bucket=s3_bucket,
+                                                            Key='star-schema-test_table.parquet')
+                                        
+                                    mock_dim_counterparty.return_value = mock_sales_order_dataframe
+                                    mock_dim_staff.return_value = mock_sales_order_dataframe
+                                    mock_dim_location.return_value = mock_sales_order_dataframe
+                                    mock_dim_design.return_value = mock_sales_order_dataframe
+                                    mock_dim_currency.return_value = mock_sales_order_dataframe
+                                    mock_fact_sales_order.return_value = mock_sales_order_dataframe
+                                    mock_dim_date.return_value = mock_sales_order_dataframe
+                                    mock_to_parquet.return_value = mock_parquet_func()
+                                    
+                                    transform_handler({}, {})
 
-            mock_dim_date.return_value = mock_sales_order_dataframe
-            mock_to_parquet.return_value = mock_parquet_func
-            
+                                    objects_in_bucket = s3_client.list_objects_v2(Bucket=s3_bucket)
+
+                                    assert 'Contents' in objects_in_bucket
+                                    assert mock_to_parquet.call_count == 7
+                                    
+
+                                    for i in range(len(objects_in_bucket['Contents'])):
+                                        assert objects_in_bucket['Contents'][i]['Key'][-7:] == "parquet"
+
+
+@pytest.mark.it('INTEGRATION TEST: Test transform lambda correctly raises exception')
+def test_transform_raises_exception(s3_client, s3_bucket):
+    with patch('src.transform.transform_utils.utils.return_dataframes') as mock_return_df:
+        mock_return_df.return_value = [1, 2]
+        with patch('logging.getLogger') as mock_logger:
+            mock_logger_instance = mock_logger.return_value
             transform_handler({}, {})
-
-            objects_in_bucket = s3_client.list_objects_v2(Bucket=s3_bucket)
-            print(objects_in_bucket)
-            print(mock_to_parquet.call_count, "<<< MOCK TO PQ CALLS")
-
-            assert 'Contents' in objects_in_bucket  # Ensure the bucket is not empty
-            assert mock_to_parquet.call_count == 1
             
-            # Verify the correct file name
-            for i in range(len(objects_in_bucket['Contents'])):
-                assert objects_in_bucket['Contents'][i]['Key'][-7:] == "parquet"
-
-
-# @pytest.mark.it('INTEGRATION TEST: Test transform lambda function puts parquet files in bucket')
-# def test_transform_handler_1(s3_client, s3_bucket, mock_sales_order_dataframe):
-#     hard_coded_bucket_name = 'vinson-processed-zone'
-    
-#     # Ensure the bucket is created in the mocked S3 environment
-#     s3_client.create_bucket(Bucket=hard_coded_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
-#     table_names = ['dim_date', 'dim_counterparty', 'dim_staff', 'dim_location', 'dim_design', 'dim_currency', 'fact_sales_order']
-    
-#     def side_effect_function(table, df, bucket):
-#         # This function will be called with different table names
-#         key = f'star-schema-{table}.parquet'
-#         s3_client.put_object(Body="Anything", Bucket=bucket, Key=key)
-    
-#     with patch('src.transform.transform.dim_date') as mock_dim_date, \
-#          patch('src.transform.transform_utils.utils.data_to_parquet') as mock_to_parquet:
-#         # Mock the dim_date function to return your test DataFrame
-#         mock_dim_date.return_value = mock_sales_order_dataframe
-        
-#         # Mock data_to_parquet to use side_effect_function to generate different keys
-#         mock_to_parquet.side_effect = side_effect_function
-        
-#         # Call the transform_handler function
-#         transform_handler({}, {})
-
-#         # Verify the contents of the S3 bucket
-#         objects_in_bucket = s3_client.list_objects_v2(Bucket=s3_bucket)
-
-#         assert 'Contents' in objects_in_bucket  # Ensure the bucket is not empty
-#         assert len(objects_in_bucket['Contents']) == len(table_names)  # Ensure we have 7 objects
-
-#         # Verify each file name ends with ".parquet"
-#         for obj in objects_in_bucket['Contents']:
-#             assert obj['Key'].endswith('.parquet')
-#             assert obj['Key'].startswith('star-schema-')
-
+            mock_logger_instance.error.assert_called_once_with("Unexpected error raised during the transform lambda function")

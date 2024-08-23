@@ -49,7 +49,6 @@ def return_dataframes(bucket_name):
 
 
 def data_to_parquet(table, df, bucket):
-    print("This is inside data to parquet")
     wr.s3.to_parquet(
     df=df,
     path=f"s3://{bucket}/star-schema-{table}.parquet"
