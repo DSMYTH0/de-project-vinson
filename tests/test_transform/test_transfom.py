@@ -7,7 +7,7 @@ import awswrangler as wr
 import datetime as dt
 import os
 from src.transform.transform import transform_handler
-from src.transform.transform_utils.utils import (return_dataframes, read_csv_from_s3, dim_staff, staff_df,
+from src.transform.transform import (return_dataframes, read_csv_from_s3, dim_staff, staff_df,
                                                  dim_counterparty, counterparty_table, currencies,
                                                  dim_currency, dim_date, dim_location, dim_design,
                                                  fact_sales_order, data_to_parquet)
@@ -96,7 +96,7 @@ def mock_department_func():
 
 @pytest.mark.it('unit test: staff_df function returns expected dataFrame')
 def test_function_returns_expected_staff_dataFrame(mock_staff_func):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_staff_func]):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_staff_func]):
         expected_df = pd.DataFrame({
             "staff_id": [1, 2, 3],
             "first_name": ['first-1', 'first-2', 'first-3'],
@@ -121,8 +121,8 @@ def test_function_returns_expected_department_dataFrame(mock_department_func):
         "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com'],
         "department_id": [2, 5, 7]
     })
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_department_func]):
-        with patch('src.transform.transform_utils.utils.staff_df', return_value=staff_df):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_department_func]):
+        with patch('src.transform.transform.staff_df', return_value=staff_df):
             expected_df = pd.DataFrame({
                 "staff_id": [1, 2, 3],
                 "first_name": ['first-1', 'first-2', 'first-3'],
@@ -132,8 +132,9 @@ def test_function_returns_expected_department_dataFrame(mock_department_func):
                 "email_address": ['admin@info.com', 'staff@info.com', 'team@info.com']
             })
             response = dim_staff()
-            #print(response)
             pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
+
+
 
 @pytest.fixture(scope="function")
 def mock_counterparty_table():
@@ -152,7 +153,7 @@ def mock_counterparty_table():
 
 @pytest.mark.it('unit test: counterparty_table function returns expected counterparty dataFrame')
 def test_function_returns_expected_counterparty_dataFrame(mock_counterparty_table):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_counterparty_table]):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_counterparty_table]):
         expected_df = pd.DataFrame({
             'legal_address_id': [5, 4, 3],
             "counterparty_id": [1, 3, 4],
@@ -172,8 +173,8 @@ def test_function_merges_with_address_and_returns_expected_counterparty_dataFram
             "counterparty_id": [1],
             "counterparty_legal_name": ['Counterparty1']
         })
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_dataframe]):
-        with patch('src.transform.transform_utils.utils.counterparty_table', return_value=mock_counterparty_table):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_address_dataframe]):
+        with patch('src.transform.transform.counterparty_table', return_value=mock_counterparty_table):
             expected_df = pd.DataFrame({
                 "counterparty_id": [1],
                 'counterparty_legal_name': ["Counterparty1"],
@@ -203,9 +204,10 @@ def mock_design_func():
     })
     return mock_design_df
 
+
 @pytest.mark.it('unit test: dim_design function returns expected design dataFrame')
 def test_function_returns_expected_design_dataFrame(mock_design_func):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_design_func]):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_design_func]):
         expected_df = pd.DataFrame({
             "design_id": [10],
             "design_name": ["some design"],
@@ -216,6 +218,8 @@ def test_function_returns_expected_design_dataFrame(mock_design_func):
         response = dim_design()
         pd.testing.assert_frame_equal(response, expected_df, check_dtype=False)
         assert [column in response.columns for column in expected_columns]
+
+
 
 @pytest.fixture(scope="function")
 def mock_address_dataframe():
@@ -236,7 +240,7 @@ def mock_address_dataframe():
 
 @pytest.mark.it('unit test: dim_location function returns expected location dataFrame')
 def test_dim_location_function_returns_expected_location_dataFrame(mock_address_dataframe):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_address_dataframe]):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_address_dataframe]):
         expected_df = pd.DataFrame({
             "location_id": [11],
             "address_line_1": ["11 College Rd"],
@@ -262,11 +266,13 @@ def mock_return_dataframes(bucket_name):
     })
     return [df]
 
+
 def mock_currencies():
     return {
         'USD': 'US Dollar',
         'EUR': 'Euro'
     }
+
 
 class TestDimCurrency:
     @pytest.mark.it('unit test: Test that currencies util provides correct currency name from currency code')
@@ -326,7 +332,7 @@ def mock_sales_order_dataframe():
 
 @pytest.mark.it('unit test: fact_sales_order function returns expected dataFrame with all required columns')
 def test_function_returns_expected_dataFrame_with_required_columns(mock_sales_order_dataframe):
-    with patch('src.transform.transform_utils.utils.return_dataframes', return_value=[mock_sales_order_dataframe]):
+    with patch('src.transform.transform.return_dataframes', return_value=[mock_sales_order_dataframe]):
         expected_df = pd.DataFrame({
             "sales_record_id": [1, 2],
             "sales_order_id":[1, 2],
@@ -370,10 +376,6 @@ def test_transform_handler_(s3_client, s3_bucket, mock_sales_order_dataframe):
                     with patch('src.transform.transform.dim_design') as mock_dim_design:
                         with patch('src.transform.transform.dim_currency') as mock_dim_currency:
                             with patch('src.transform.transform.fact_sales_order') as mock_fact_sales_order:
-        
-        
-        
-        
                                 with patch('src.transform.transform.data_to_parquet') as mock_to_parquet:
 
                                     def mock_parquet_func():
@@ -404,7 +406,7 @@ def test_transform_handler_(s3_client, s3_bucket, mock_sales_order_dataframe):
 
 @pytest.mark.it('INTEGRATION TEST: Test transform lambda correctly raises exception')
 def test_transform_raises_exception(s3_client, s3_bucket):
-    with patch('src.transform.transform_utils.utils.return_dataframes') as mock_return_df:
+    with patch('src.transform.transform.return_dataframes') as mock_return_df:
         mock_return_df.return_value = [1, 2]
         with patch('logging.getLogger') as mock_logger:
             mock_logger_instance = mock_logger.return_value
