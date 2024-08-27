@@ -211,8 +211,8 @@ def dim_counterparty():
     merged_counterparty.pop('address_id')
 
     dim_counterparty_df = merged_counterparty.rename(columns={
-        'address_line_1' : 'counterparty-legal_address_line_1',
-        'address_line_2' : 'counterparty-legal_address_line_2',
+        'address_line_1' : 'counterparty_legal_address_line_1',
+        'address_line_2' : 'counterparty_legal_address_line_2',
         'district' : 'counterparty_legal_district',
         'city' : 'counterparty_legal_city',
         'postal_code' : 'counterparty_legal_postal_code',
@@ -220,7 +220,7 @@ def dim_counterparty():
         'phone' : 'counterparty_legal_phone_number'
     })
     columns = dim_counterparty_df.columns.tolist()
-    updated_columns = ['counterparty_id', 'counterparty_legal_name', 'counterparty-legal_address_line_1', 'counterparty-legal_address_line_2', 'counterparty_legal_district', 'counterparty_legal_city', 'counterparty_legal_postal_code', 'counterparty_legal_country', 'counterparty_legal_phone_number']
+    updated_columns = ['counterparty_id', 'counterparty_legal_name', 'counterparty_legal_address_line_1', 'counterparty_legal_address_line_2', 'counterparty_legal_district', 'counterparty_legal_city', 'counterparty_legal_postal_code', 'counterparty_legal_country', 'counterparty_legal_phone_number']
     dim_counterparty_df = dim_counterparty_df[updated_columns]
     return dim_counterparty_df
 
