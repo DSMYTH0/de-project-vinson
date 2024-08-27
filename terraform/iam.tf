@@ -208,3 +208,100 @@ resource "aws_iam_role_policy_attachment" "transform_lambda_cw_policy_attachment
   role       = aws_iam_role.transform_lambda_role.name
   policy_arn = aws_iam_policy.cw_policy.arn
 }
+
+
+
+
+          ######################################
+#     ~~~~#### Load Lambda IAM Resources ####~~~~
+          ######################################
+
+
+# Creates IAM role for transform lambda
+resource "aws_iam_role" "load_lambda_role" {
+  name               = "load_lambda_assume_role"
+  assume_role_policy = <<EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "sts:AssumeRole"
+                ],
+                "Principal": {
+                    "Service": [
+                        "lambda.amazonaws.com"
+                    ]
+                }
+            }
+        ]
+    }
+    EOF
+}
+
+#    ~~~~#### S3 Policy ####~~~~
+
+# Creates policy document to attach to policy
+data "aws_iam_policy_document" "s3_get_object_document" {
+  statement {
+
+    actions = ["s3:GetObject"]
+
+    resources = [
+      "arn:aws:s3:::vinson-processed-zone/*"
+    ]
+  }
+  statement {
+    
+    actions = ["s3:ListAllMyBuckets", "s3:ListBucket"]
+
+    resources = ["arn:aws:s3:::*"]
+  }
+}
+
+# Creates policy to be attached to IAM role
+resource "aws_iam_policy" "s3_get_policy" {
+  name   = "s3-policy-load-lambda"
+  policy = data.aws_iam_policy_document.s3_get_object_document.json
+}
+
+# Attaches the policy to the IAM role
+resource "aws_iam_role_policy_attachment" "load_lambda_s3_policy_attachment" {
+  role       = aws_iam_role.load_lambda_role.name
+  policy_arn = aws_iam_policy.s3_get_policy.arn
+}
+
+
+#    ~~~~#### S3 Permission ####~~~~
+
+# Allows Load Lambda to be invoked by S3
+resource "aws_lambda_permission" "allow_s3_invoke_load_lambda" {
+  statement_id  = "AllowS3InvokeLambda"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.load_lambda.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = "arn:aws:s3:::vinson-processed-zone"
+}
+
+# S3 Bucket Notification to trigger Lambda
+resource "aws_s3_bucket_notification" "processed_zone_notification" {
+  bucket = "vinson-processed-zone"
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.load_lambda.arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_lambda_permission.allow_s3_invoke_load_lambda]
+}
+
+
+
+#    ~~~~#### Cloud Watch Attachement ####~~~~
+
+# Attaches cloudwatch policy to the IAM role
+resource "aws_iam_role_policy_attachment" "load_lambda_cw_policy_attachment" {
+  role       = aws_iam_role.load_lambda_role.name
+  policy_arn = aws_iam_policy.cw_policy.arn
+}
