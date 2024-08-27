@@ -18,6 +18,7 @@ def transform_handler(event, context):
     logger = logging.getLogger('Processing Lambda Log')
     logging.basicConfig()
     logger.setLevel(logging.INFO)
+    logger.info("Lambda has been invoked")
     
     try:
         ingestion_bucket = "vinson-ingestion-zone"
