@@ -178,8 +178,8 @@ def test_function_merges_with_address_and_returns_expected_counterparty_dataFram
             expected_df = pd.DataFrame({
                 "counterparty_id": [1],
                 'counterparty_legal_name': ["Counterparty1"],
-                'counterparty-legal_address_line_1': ["11 College Rd"],
-                'counterparty-legal_address_line_2': ["Master House"],
+                'counterparty_legal_address_line_1': ["11 College Rd"],
+                'counterparty_legal_address_line_2': ["Master House"],
                 'counterparty_legal_district': ["Kent"],
                 'counterparty_legal_city': ["Maidstone"],
                 'counterparty_legal_postal_code': ["1289"],
