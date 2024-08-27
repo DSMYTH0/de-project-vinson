@@ -15,7 +15,7 @@ resource "aws_cloudwatch_log_stream" "extract_log_stream" {
 }
 
 resource "aws_cloudwatch_log_metric_filter" "lambda_extract_error_catcher" {
-  name           = "lamdba-extract-error-catcher"
+  name           = "lambda-extract-error-catcher"
   pattern        = "ERROR"
   log_group_name = aws_cloudwatch_log_group.extract_log_group.name
 
@@ -42,7 +42,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm_1" {
 }
 
 resource "aws_sns_topic" "extract_topic" {
-  name = "lamdba-extract-error-catcher"
+  name = "lambda-extract-error-catcher"
 }
 
 resource "aws_sns_topic_subscription" "extract_email_target" {
@@ -70,7 +70,7 @@ resource "aws_cloudwatch_log_stream" "transform_log_stream" {
 }
 
 resource "aws_cloudwatch_log_metric_filter" "lambda_transform_error_catcher" {
-  name           = "lamdba-transform-error-catcher"
+  name           = "lambda-transform-error-catcher"
   pattern        = "ERROR"
   log_group_name = aws_cloudwatch_log_group.transform_log_group.name
 
@@ -97,7 +97,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudwatch_error_alarm_2" {
 }
 
 resource "aws_sns_topic" "transform_topic" {
-  name = "lamdba-transform-error-catcher"
+  name = "lambda-transform-error-catcher"
 }
 
 resource "aws_sns_topic_subscription" "transform_email_target" {

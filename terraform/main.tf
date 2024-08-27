@@ -7,7 +7,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "test-project-config-bucket"
+    bucket = "project-vinson-config-bucket"
     key = "terraform.tfstate"
     region = "eu-west-2"
   }

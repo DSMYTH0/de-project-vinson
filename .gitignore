@@ -2,5 +2,10 @@
 venv
 **/.pycache
 **/__pycache__
+<<<<<<< HEAD
 .terraform.lock.hcl
 .terraform
+=======
+.terraform
+.terraform.lock.hcl
+>>>>>>> a89b7616dc298318cdaa67a545c18328858f61a2

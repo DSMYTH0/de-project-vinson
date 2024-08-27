@@ -167,7 +167,7 @@ data "aws_iam_policy_document" "s3_access_both_buckets_document" {
   }
   statement {
     
-    actions = ["s3:ListAllMyBuckets"]
+    actions = ["s3:ListAllMyBuckets", "s3:ListBucket"]
 
     resources = ["arn:aws:s3:::*"]
   }
