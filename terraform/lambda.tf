@@ -74,3 +74,52 @@ resource "aws_lambda_function" "transform_lambda" {
     }
   }
 }
+
+
+          ########################################
+#     ~~~~#### Resources for Load Lambda ####~~~~
+          ########################################
+
+
+# Creates a zip file from the source code for the Lambda to use
+data "archive_file" "load_lambda_zip" {
+  type        = "zip"
+  output_path = "${path.module}/../packages/load/function.zip"
+  source_file = "${path.module}/../src/load/load.py"
+}
+
+# Points to where the zipped code is located
+resource "aws_s3_object" "load_lambda_code" {
+  bucket = aws_s3_bucket.code_bucket.bucket
+  key = "packages/load/function.zip"
+  source = "${path.module}/../packages/load/function.zip"
+}
+
+# Define the Load Lambda function
+resource "aws_lambda_function" "load_lambda" {
+    function_name = var.load_lambda_func
+    s3_bucket = aws_s3_bucket.code_bucket.bucket
+    s3_key = "packages/load/function.zip"
+    role = aws_iam_role.load_lambda_role.arn
+    handler = "load.${var.load_lambda_func}"
+    runtime = "python3.12"
+    layers = ["arn:aws:lambda:eu-west-2:336392948345:layer:AWSSDKPandas-Python312:12"] # Layers may need changing or adding, depends on AB & EC's needs
+    timeout = 180
+    memory_size = 512
+    source_code_hash = data.archive_file.load_lambda_zip.output_base64sha256
+
+    environment {
+      variables = {
+        S3_BUCKET_NAME = aws_s3_bucket.code_bucket.bucket
+      }
+  }
+}
+
+# #Updates lambda code
+# resource "terraform_data" "bootstrap" {
+#   triggers_replace = [aws_lambda_function.load_lambda.id]
+#   }
+
+
+# Note for Tuesday: 
+# - Create Two bucket: 1. Code bucket 2. Processed bucket for experiment and delete afterwards 
