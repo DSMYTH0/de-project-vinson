@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 import awswrangler as wr
 import boto3
+import logging
 
 
 
