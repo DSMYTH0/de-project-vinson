@@ -119,7 +119,4 @@ resource "aws_lambda_function" "load_lambda" {
 # resource "terraform_data" "bootstrap" {
 #   triggers_replace = [aws_lambda_function.load_lambda.id]
 #   }
-
-
-# Note for Tuesday: 
-# - Create Two bucket: 1. Code bucket 2. Processed bucket for experiment and delete afterwards 
+ 
